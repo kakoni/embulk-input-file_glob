@@ -8,20 +8,16 @@ repositories {
     mavenCentral()
 }
 
-group = "${rootProject.group}"
-version = "${rootProject.version}"
+group = rootProject.group
+version = rootProject.version
 description = "Loads records from Embulk configuration inline."
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-configurations {
-    compileClasspath.resolutionStrategy.activateDependencyLocking()
-}
-
 dependencies {
-    compileOnly project(":embulk-api")
-    compileOnly project(":embulk-spi")
+    compileOnly "org.embulk:embulk-api:0.10.33"
+    compileOnly "org.embulk:embulk-spi:0.10.33"
 
     compile "com.fasterxml.jackson.core:jackson-annotations:2.6.7"
     compile "com.fasterxml.jackson.core:jackson-core:2.6.7"
@@ -63,8 +59,8 @@ publishing {
     publications {
          maven(MavenPublication) {
             afterEvaluate { project ->
-                groupId = "${project.group}"
-                artifactId = "${project.name}"
+                groupId = project.group
+                artifactId = project.name
             }
 
             from components.java
@@ -75,8 +71,8 @@ publishing {
                 packaging "jar"
 
                 afterEvaluate { project ->
-                    name = "${project.name}"
-                    description = "${project.description}"
+                    name = project.name
+                    description = project.description
                 }
                 url = "https://www.embulk.org/"
 
@@ -96,9 +92,9 @@ publishing {
                 }
 
                 scm {
-                    connection = "scm:git:git://github.com/embulk/embulk.git"
-                    developerConnection = "scm:git:git@github.com:embulk/embulk.git"
-                    url = "https://github.com/embulk/embulk"
+                    connection = "scm:git:git://github.com/embulk/embulk-standards.git"
+                    developerConnection = "scm:git:git@github.com:embulk/embulk-standards.git"
+                    url = "https://github.com/embulk/embulk-standards"
                 }
             }
         }

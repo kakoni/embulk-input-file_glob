@@ -8,20 +8,16 @@ repositories {
     mavenCentral()
 }
 
-group = "${rootProject.group}"
-version = "${rootProject.version}"
+group = rootProject.group
+version = rootProject.version
 description = "Parses CSV files read by other file input plugins."
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-configurations {
-    compileClasspath.resolutionStrategy.activateDependencyLocking()
-}
-
 dependencies {
-    compileOnly project(":embulk-api")
-    compileOnly project(":embulk-spi")
+    compileOnly "org.embulk:embulk-api:0.10.33"
+    compileOnly "org.embulk:embulk-spi:0.10.33"
 
     compile "com.fasterxml.jackson.core:jackson-annotations:2.6.7"
     compile "com.fasterxml.jackson.core:jackson-core:2.6.7"
@@ -33,11 +29,11 @@ dependencies {
     compile "org.embulk:embulk-util-timestamp:0.2.1"
 
     testImplementation "junit:junit:4.13.2"
-    testImplementation project(":embulk-api")
-    testImplementation project(":embulk-spi")
-    testImplementation project(":embulk-core")
-    testImplementation project(":embulk-deps")
-    testImplementation project(":embulk-junit4")
+    testImplementation "org.embulk:embulk-api:0.10.33"
+    testImplementation "org.embulk:embulk-spi:0.10.33"
+    testImplementation "org.embulk:embulk-core:0.10.33"
+    testImplementation "org.embulk:embulk-deps:0.10.33"
+    testImplementation "org.embulk:embulk-junit4:0.10.33"
 
     testImplementation project(":embulk-formatter-csv")
     testImplementation project(":embulk-input-file")
@@ -81,8 +77,8 @@ publishing {
     publications {
          maven(MavenPublication) {
             afterEvaluate { project ->
-                groupId = "${project.group}"
-                artifactId = "${project.name}"
+                groupId = project.group
+                artifactId = project.name
             }
 
             from components.java
@@ -93,8 +89,8 @@ publishing {
                 packaging "jar"
 
                 afterEvaluate { project ->
-                    name = "${project.name}"
-                    description = "${project.description}"
+                    name = project.name
+                    description = project.description
                 }
                 url = "https://www.embulk.org/"
 
@@ -138,9 +134,9 @@ publishing {
                 }
 
                 scm {
-                    connection = "scm:git:git://github.com/embulk/embulk.git"
-                    developerConnection = "scm:git:git@github.com:embulk/embulk.git"
-                    url = "https://github.com/embulk/embulk"
+                    connection = "scm:git:git://github.com/embulk/embulk-standards.git"
+                    developerConnection = "scm:git:git@github.com:embulk/embulk-standards.git"
+                    url = "https://github.com/embulk/embulk-standards"
                 }
             }
         }
