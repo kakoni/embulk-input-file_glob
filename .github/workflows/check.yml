@@ -3,6 +3,9 @@ on: [ pull_request, push ]
 jobs:
   check:
     runs-on: ${{ matrix.os }}
+    # push: always run.
+    # pull_request: run only when the PR is submitted from a forked repository, not within this repository.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     strategy:
       fail-fast: false
       matrix:
