@@ -42,6 +42,20 @@ task release {
 }
 
 subprojects {
+    tasks.withType(Test) {
+        testLogging {
+            events "passed", "skipped", "failed", "standardOut", "standardError"
+
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+            showCauses = true
+            showExceptions = true
+            showStackTraces = true
+            showStandardStreams = true
+
+            outputs.upToDateWhen { false }
+        }
+    }
+
     afterEvaluate { project ->
         rootProject.release.dependsOn project.publishMavenPublicationToMavenCentralRepository
     }
