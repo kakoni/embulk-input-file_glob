@@ -8,20 +8,16 @@ repositories {
     mavenCentral()
 }
 
-group = "${rootProject.group}"
-version = "${rootProject.version}"
+group = rootProject.group
+version = rootProject.version
 description = "Dumps records to the standard output."
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-configurations {
-    compileClasspath.resolutionStrategy.activateDependencyLocking()
-}
-
 dependencies {
-    compileOnly project(":embulk-api")
-    compileOnly project(":embulk-spi")
+    compileOnly "org.embulk:embulk-api:0.10.33"
+    compileOnly "org.embulk:embulk-spi:0.10.33"
 
     compile "org.embulk:embulk-util-config:0.3.1"
     compile "org.embulk:embulk-util-timestamp:0.2.1"
@@ -59,8 +55,8 @@ publishing {
     publications {
          maven(MavenPublication) {
             afterEvaluate { project ->
-                groupId = "${project.group}"
-                artifactId = "${project.name}"
+                groupId = project.group
+                artifactId = project.name
             }
 
             from components.java
@@ -71,8 +67,8 @@ publishing {
                 packaging "jar"
 
                 afterEvaluate { project ->
-                    name = "${project.name}"
-                    description = "${project.description}"
+                    name = project.name
+                    description = project.description
                 }
                 url = "https://www.embulk.org/"
 
@@ -96,9 +92,9 @@ publishing {
                 }
 
                 scm {
-                    connection = "scm:git:git://github.com/embulk/embulk.git"
-                    developerConnection = "scm:git:git@github.com:embulk/embulk.git"
-                    url = "https://github.com/embulk/embulk"
+                    connection = "scm:git:git://github.com/embulk/embulk-standards.git"
+                    developerConnection = "scm:git:git@github.com:embulk/embulk-standards.git"
+                    url = "https://github.com/embulk/embulk-standards"
                 }
             }
         }
