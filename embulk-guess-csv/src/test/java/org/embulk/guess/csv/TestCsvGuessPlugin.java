@@ -23,20 +23,15 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.embulk.EmbulkTestRuntime;
 import org.embulk.config.ConfigDiff;
 import org.embulk.config.ConfigSource;
 import org.embulk.util.config.ConfigMapperFactory;
-import org.junit.Rule;
 import org.junit.Test;
 
 /**
  * Tests CsvGuessPlugin.
  */
 public class TestCsvGuessPlugin {
-    @Rule
-    public EmbulkTestRuntime runtime = new EmbulkTestRuntime();
-
     @Test
     public void testLargeLong() {
         final ConfigDiff actual = guess(

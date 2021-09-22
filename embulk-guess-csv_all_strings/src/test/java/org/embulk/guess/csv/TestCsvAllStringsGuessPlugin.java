@@ -21,20 +21,15 @@ import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import org.embulk.EmbulkTestRuntime;
 import org.embulk.config.ConfigDiff;
 import org.embulk.config.ConfigSource;
 import org.embulk.util.config.ConfigMapperFactory;
-import org.junit.Rule;
 import org.junit.Test;
 
 /**
  * Tests CsvAllStringsGuessPlugin.
  */
 public class TestCsvAllStringsGuessPlugin {
-    @Rule
-    public EmbulkTestRuntime runtime = new EmbulkTestRuntime();
-
     /*
     def test_columns_without_header
       actual = guess([
