@@ -16,6 +16,7 @@
 
 package org.embulk.guess.csv;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -190,9 +191,41 @@ final class SchemaGuess {
             return null;
         }
 
+        // It was implemented as below when SchemaGuess was implemented with Ruby.
+        //
+        // begin
+        //   JSON.parse(str)
+        //   return "json"
+        // rescue
+        // end
+        //
+        // The 'json' gem 1.8.X raised JSON::ParserError by default because an older JSON RFC 4627
+        // accepted only an object an an array as its top-level value.
+        // https://datatracker.ietf.org/doc/html/rfc4627#section-2
+        //
+        // The 'json' gem 2.0+ started to accept any JSON value because a newer JSON RFC 7159
+        // changed the constraint that it be an object or array.
+        // https://datatracker.ietf.org/doc/html/rfc7159#section-2
+        // https://bugs.ruby-lang.org/issues/13070
+        // https://bugs.ruby-lang.org/issues/14054
+        //
+        // Embulk till v0.10.21 had expected (embedded) JRuby 9.1.15.0, which bundled 'json' 1.8.X.
+        // JSON.parse(str) here did not accept a quoted string such as '"example_string"'.
+        //
+        // (JFYI, JRuby 9.2+ bundles 'json' 2.0+. If a user used JRuby 9.2+ with Embulk v0.10.22+,
+        // the schema guess should have behaved a little bit different against a quoted string.)
+        //
+        // We replaced JSON.parse(str) to Jackson ObjectMapper#readTree(str) when reimplementing
+        // the guess in Java. On the other hand, Jackson's ObjectMapper followed the new RFC.
+        //
+        // Therefore, we introduced an explicit check to accept only an object or an array so that:
+        // 1) The guess keeps compatible with older versions.
+        // 2) The guess behaves more natural -- just a quoted string is naturally parsed as STRING.
         try {
-            new ObjectMapper().readTree(str);
-            return GuessedType.JSON;
+            final JsonNode node = new ObjectMapper().readTree(str);
+            if (node.isContainerNode()) {
+                return GuessedType.JSON;
+            }
         } catch (final Exception ex) {
             // Pass-through.
         }
