@@ -23,20 +23,18 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.embulk.EmbulkTestRuntime;
 import org.embulk.config.ConfigDiff;
 import org.embulk.config.ConfigSource;
+import org.embulk.spi.Buffer;
+import org.embulk.spi.BufferAllocator;
+import org.embulk.spi.BufferImpl;
 import org.embulk.util.config.ConfigMapperFactory;
-import org.junit.Rule;
 import org.junit.Test;
 
 /**
  * Tests CsvGuessPlugin.
  */
 public class TestCsvGuessPlugin {
-    @Rule
-    public EmbulkTestRuntime runtime = new EmbulkTestRuntime();
-
     @Test
     public void testLargeLong() {
         final ConfigDiff actual = guess(
@@ -397,12 +395,24 @@ public class TestCsvGuessPlugin {
         assertEquals("%Y%m%d%H%M%S%z", columnsActual.get(3).get("format"));
     }
 
+    private static class MockBufferAllocator implements BufferAllocator {
+        @Override
+        public Buffer allocate() {
+            return this.allocate(32 * 1024);
+        }
+
+        @Override
+        public Buffer allocate(final int minimumCapacity) {
+            return BufferImpl.allocate(minimumCapacity);
+        }
+    }
+
     private static ConfigDiff guess(final String... sampleLines) {
         final ConfigSource config = CONFIG_MAPPER_FACTORY.newConfigSource();
         final ConfigSource parserConfig = CONFIG_MAPPER_FACTORY.newConfigSource();
         parserConfig.set("type", "csv");
         config.set("parser", parserConfig);
-        return new CsvGuessPlugin().guessLines(config, Arrays.asList(sampleLines));
+        return new CsvGuessPlugin().guessLines(config, Arrays.asList(sampleLines), new MockBufferAllocator());
     }
 
     private static final ConfigMapperFactory CONFIG_MAPPER_FACTORY = ConfigMapperFactory.builder().addDefaultModules().build();

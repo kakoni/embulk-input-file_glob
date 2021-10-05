@@ -32,6 +32,7 @@ import org.embulk.config.ConfigSource;
 import org.embulk.parser.csv.CsvParserPlugin;
 import org.embulk.parser.csv.CsvTokenizer;
 import org.embulk.spi.Buffer;
+import org.embulk.spi.BufferAllocator;
 import org.embulk.spi.Exec;
 import org.embulk.spi.GuessPlugin;
 import org.embulk.util.config.ConfigMapperFactory;
@@ -59,10 +60,11 @@ public class CsvGuessPlugin implements GuessPlugin {
             return NewlineGuess.of(CONFIG_MAPPER_FACTORY).guess(config, sample);
         }
 
-        return this.guessLines(config, LineGuessHelper.of(CONFIG_MAPPER_FACTORY).toLines(config, sample));
+        final BufferAllocator bufferAllocator = Exec.getBufferAllocator();
+        return this.guessLines(config, LineGuessHelper.of(CONFIG_MAPPER_FACTORY).toLines(config, sample), bufferAllocator);
     }
 
-    ConfigDiff guessLines(final ConfigSource config, final List<String> sampleLines) {
+    ConfigDiff guessLines(final ConfigSource config, final List<String> sampleLines, final BufferAllocator bufferAllocator) {
         final ConfigDiff configDiff = newConfigDiff();
 
         // return {} unless config.fetch("parser", {}).fetch("type", "csv") == "csv"
@@ -127,7 +129,8 @@ public class CsvGuessPlugin implements GuessPlugin {
         // skipping empty lines is also disabled here because skipping header lines is done by
         // CsvParser which doesn't skip empty lines automatically
 
-        final List<List<String>> sampleRecordsBeforeSkip = splitLines(parserGuessed, false, sampleLines, delim, null);
+        final List<List<String>> sampleRecordsBeforeSkip =
+                splitLines(parserGuessed, false, sampleLines, delim, null, bufferAllocator);
         final int skipHeaderLines = guessSkipHeaderLines(sampleRecordsBeforeSkip);
         final List<String> skippedSampleLines = sampleLines.subList(skipHeaderLines, sampleLines.size());
         final List<List<String>> skippedSampleRecords = sampleRecordsBeforeSkip.subList(skipHeaderLines, sampleRecordsBeforeSkip.size());
@@ -144,7 +147,8 @@ public class CsvGuessPlugin implements GuessPlugin {
                 parserGuessed);
         }
 
-        final List<List<String>> sampleRecords = splitLines(parserGuessed, true, uncommentedSampleLines, delim, null);
+        final List<List<String>> sampleRecords =
+                splitLines(parserGuessed, true, uncommentedSampleLines, delim, null, bufferAllocator);
 
         // It should fail if CSV parser cannot parse sample_lines.
         if (sampleRecords == null || sampleRecords.isEmpty()) {
@@ -160,7 +164,8 @@ public class CsvGuessPlugin implements GuessPlugin {
             if (parserGuessed.has("trim_if_not_quoted")) {
                 columnTypes = SCHEMA_GUESS.typesFromListRecords(sampleRecords.subList(0, 1));
             } else {
-                final List<List<String>> sampleRecordsTrimmed = splitLines(parserGuessed, true, uncommentedSampleLines, delim, true);
+                final List<List<String>> sampleRecordsTrimmed =
+                        splitLines(parserGuessed, true, uncommentedSampleLines, delim, true, bufferAllocator);
                 final List<SchemaGuess.GuessedType> columnTypesTrimmed = SCHEMA_GUESS.typesFromListRecords(sampleRecordsTrimmed);
 
                 final List<SchemaGuess.GuessedType> columnTypesUntrimmed = SCHEMA_GUESS.typesFromListRecords(sampleRecords.subList(0, 1));
@@ -187,7 +192,8 @@ public class CsvGuessPlugin implements GuessPlugin {
             if (parserGuessed.has("trim_if_not_quoted")) {
                 otherTypes = otherTypesUntrimmed;
             } else {
-                final List<List<String>> sampleRecordsTrimmed = splitLines(parserGuessed, true, uncommentedSampleLines, delim, true);
+                final List<List<String>> sampleRecordsTrimmed =
+                        splitLines(parserGuessed, true, uncommentedSampleLines, delim, true, bufferAllocator);
                 final List<SchemaGuess.GuessedType> otherTypesTrimmed =
                         SCHEMA_GUESS.typesFromListRecords(sampleRecordsTrimmed.subList(1, sampleRecordsTrimmed.size()));
                 if (otherTypesUntrimmed.equals(otherTypesTrimmed)) {
@@ -274,7 +280,8 @@ public class CsvGuessPlugin implements GuessPlugin {
             final boolean skipEmptyLines,
             final List<String> sampleLines,
             final String delim,
-            final Boolean trimIfNotQuoted) {
+            final Boolean trimIfNotQuoted,
+            final BufferAllocator bufferAllocator) {
         try {
             final String nullString = parserConfig.get(String.class, "null_string", null);
             final ConfigSource config = CONFIG_MAPPER_FACTORY.newConfigSource();
@@ -289,7 +296,7 @@ public class CsvGuessPlugin implements GuessPlugin {
                     CONFIG_MAPPER_FACTORY.createConfigMapper().map(config, CsvParserPlugin.PluginTask.class);
 
             final byte[] data = joinBytes(sampleLines, parserTask.getNewline());
-            final Buffer sample = Exec.getBufferAllocator().allocate(data.length);
+            final Buffer sample = bufferAllocator.allocate(data.length);
             sample.setBytes(0, data, 0, data.length);
             sample.limit(data.length);
 
