@@ -82,6 +82,13 @@ public class TestCsvGuessPlugin {
     }
 
     @Test
+    public void testMergeTimeFormats() throws Exception {
+        assertGuessByResource(embulk,
+                "test_merge_time_formats_seed.yml", "test_merge_time_formats.csv",
+                "test_merge_time_formats_guessed.yml");
+    }
+
+    @Test
     public void testFor1Rows() throws Exception {
         assertGuessByResource(embulk,
                 "test_1_rows_seed.yml", "test_1_rows.csv",
