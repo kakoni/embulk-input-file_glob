@@ -21,7 +21,7 @@ dependencies {
 
     compile project(":embulk-parser-csv")
     compile "com.ibm.icu:icu4j:54.1.1"
-    compile "org.embulk:embulk-util-guess:0.1.4"
+    compile "org.embulk:embulk-util-guess:0.2.0"
 
     testImplementation "junit:junit:4.13.2"
     testImplementation "org.embulk:embulk-api:0.10.33"

@@ -17,10 +17,11 @@
 package org.embulk.guess.csv;
 
 import org.embulk.config.ConfigDiff;
+import org.embulk.util.guess.GuesstimatedType;
 
 public class CsvAllStringsGuessPlugin extends CsvGuessPlugin {
     @Override
-    protected ConfigDiff newColumn(final String name, final SchemaGuess.GuessedType type) {
+    protected ConfigDiff newColumn(final String name, final GuesstimatedType type) {
         final ConfigDiff column = CsvGuessPlugin.newConfigDiff();
         column.set("name", name);
         column.set("type", "string");
