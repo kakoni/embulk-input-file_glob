@@ -11,28 +11,8 @@ jobs:
       matrix:
         os:
         - ubuntu-latest
-        - macOS-latest
+        # - macOS-latest  # https://github.com/embulk/embulk-standards/issues/16
         - windows-latest
-        gradle_task:
-        - ":embulk-decoder-bzip2:check"
-        - ":embulk-decoder-gzip:check"
-        - ":embulk-encoder-bzip2:check"
-        - ":embulk-encoder-gzip:check"
-        - ":embulk-filter-remove_columns:check"
-        - ":embulk-filter-rename:check"
-        - ":embulk-formatter-csv:check"
-        - ":embulk-guess-bzip2:check"
-        - ":embulk-guess-csv:check"
-        - ":embulk-guess-csv_all_strings:check"
-        - ":embulk-guess-gzip:check"
-        - ":embulk-guess-json:check"
-        - ":embulk-input-config:check"
-        - ":embulk-input-file:check"
-        - ":embulk-output-file:check"
-        - ":embulk-output-null:check"
-        - ":embulk-output-stdout:check"
-        - ":embulk-parser-csv:check"
-        - ":embulk-parser-json:check"
     steps:
     - name: Set Git's core.autocrlf to false for Windows before checkout
       run: git config --global core.autocrlf false
@@ -41,7 +21,8 @@ jobs:
       uses: actions/setup-java@v2
       with:
         java-version: 8
-        distribution: "zulu"
+        distribution: "temurin"
+        cache: "gradle"
 
     # GitHub Actions on Windows set environment variables TMP and TEMP with a legacy DOS 8.3 filename: "C:\Users\RUNNER~1\..."
     # On the other hand, "embulk-input-file" expects a long filename (LFN) on Windows.
@@ -56,6 +37,5 @@ jobs:
     - name: Override TEMP to use Windows' long filename (LFN)
       run: echo "TEMP=$env:USERPROFILE\AppData\Local\Temp" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       if: matrix.os == 'windows-latest'
-
-    - name: Build and test
-      run: ./gradlew ${{ matrix.gradle_task }}
+    - name: Check all plugins
+      run: ./gradlew --stacktrace check

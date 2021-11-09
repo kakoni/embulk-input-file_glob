@@ -11,7 +11,7 @@ repositories {
 }
 
 group = "org.embulk"
-version = "0.10.35-SNAPSHOT"
+version = "0.10.36-SNAPSHOT"
 
 task releaseCheck {
     doFirst {
@@ -57,6 +57,7 @@ subprojects {
     }
 
     afterEvaluate { project ->
+        rootProject.check.dependsOn project.check
         rootProject.release.dependsOn project.publishMavenPublicationToMavenCentralRepository
     }
 }
