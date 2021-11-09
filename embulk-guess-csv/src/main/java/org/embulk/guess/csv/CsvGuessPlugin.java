@@ -38,8 +38,10 @@ import org.embulk.spi.GuessPlugin;
 import org.embulk.util.config.ConfigMapperFactory;
 import org.embulk.util.file.ListFileInput;
 import org.embulk.util.guess.CharsetGuess;
+import org.embulk.util.guess.GuesstimatedType;
 import org.embulk.util.guess.LineGuessHelper;
 import org.embulk.util.guess.NewlineGuess;
+import org.embulk.util.guess.SchemaGuess;
 import org.embulk.util.text.LineDecoder;
 import org.embulk.util.text.Newline;
 import org.slf4j.Logger;
@@ -156,19 +158,19 @@ public class CsvGuessPlugin implements GuessPlugin {
         }
 
         final boolean headerLine;
-        final List<SchemaGuess.GuessedType> columnTypes;
+        final List<GuesstimatedType> columnTypes;
         if (uncommentedSampleLines.size() == 1) {
             // The file contains only 1 line. Assume that there are no header line.
             headerLine = false;
 
             if (parserGuessed.has("trim_if_not_quoted")) {
-                columnTypes = SCHEMA_GUESS.typesFromListRecords(sampleRecords.subList(0, 1));
+                columnTypes = typesFromListRecords(sampleRecords.subList(0, 1));
             } else {
                 final List<List<String>> sampleRecordsTrimmed =
                         splitLines(parserGuessed, true, uncommentedSampleLines, delim, true, bufferAllocator);
-                final List<SchemaGuess.GuessedType> columnTypesTrimmed = SCHEMA_GUESS.typesFromListRecords(sampleRecordsTrimmed);
+                final List<GuesstimatedType> columnTypesTrimmed = typesFromListRecords(sampleRecordsTrimmed);
 
-                final List<SchemaGuess.GuessedType> columnTypesUntrimmed = SCHEMA_GUESS.typesFromListRecords(sampleRecords.subList(0, 1));
+                final List<GuesstimatedType> columnTypesUntrimmed = typesFromListRecords(sampleRecords.subList(0, 1));
                 if (columnTypesUntrimmed.equals(columnTypesTrimmed)) {
                     parserGuessed.set("trim_if_not_quoted", false);
                     columnTypes = columnTypesUntrimmed;
@@ -180,22 +182,22 @@ public class CsvGuessPlugin implements GuessPlugin {
         } else {
             // The file contains more than 1 line. If guessed first line's column types are all strings or boolean, and the types are
             // different from the other lines, assume that the first line is column names.
-            final List<SchemaGuess.GuessedType> firstTypes = SCHEMA_GUESS.typesFromListRecords(sampleRecords.subList(0, 1));
-            final List<SchemaGuess.GuessedType> otherTypesUntrimmed =
-                    SCHEMA_GUESS.typesFromListRecords(sampleRecords.subList(1, sampleRecords.size()));
+            final List<GuesstimatedType> firstTypes = typesFromListRecords(sampleRecords.subList(0, 1));
+            final List<GuesstimatedType> otherTypesUntrimmed =
+                    typesFromListRecords(sampleRecords.subList(1, sampleRecords.size()));
 
             logger.debug("Types of the first line : {}", firstTypes);
             logger.debug("Types of the other lines (untrimmed): {}", otherTypesUntrimmed);
 
-            final List<SchemaGuess.GuessedType> otherTypes;
+            final List<GuesstimatedType> otherTypes;
 
             if (parserGuessed.has("trim_if_not_quoted")) {
                 otherTypes = otherTypesUntrimmed;
             } else {
                 final List<List<String>> sampleRecordsTrimmed =
                         splitLines(parserGuessed, true, uncommentedSampleLines, delim, true, bufferAllocator);
-                final List<SchemaGuess.GuessedType> otherTypesTrimmed =
-                        SCHEMA_GUESS.typesFromListRecords(sampleRecordsTrimmed.subList(1, sampleRecordsTrimmed.size()));
+                final List<GuesstimatedType> otherTypesTrimmed =
+                        typesFromListRecords(sampleRecordsTrimmed.subList(1, sampleRecordsTrimmed.size()));
                 if (otherTypesUntrimmed.equals(otherTypesTrimmed)) {
                     parserGuessed.set("trim_if_not_quoted", false);
                     otherTypes = otherTypesUntrimmed;
@@ -208,7 +210,7 @@ public class CsvGuessPlugin implements GuessPlugin {
             logger.debug("Types of the other lines: {}", otherTypes);
 
             headerLine = ((!firstTypes.equals(otherTypes)
-                                 && firstTypes.stream().allMatch(t -> SchemaGuess.GuessedType.STRING.equals(t) || SchemaGuess.GuessedType.BOOLEAN.equals(t)))
+                                 && firstTypes.stream().allMatch(t -> GuesstimatedType.STRING.equals(t) || GuesstimatedType.BOOLEAN.equals(t)))
                              || guessStringHeaderLine(sampleRecords));
 
             logger.debug("headerLine: {}", headerLine);
@@ -261,7 +263,7 @@ public class CsvGuessPlugin implements GuessPlugin {
      * @param type  a guessed type
      * @return a new column config
      */
-    protected ConfigDiff newColumn(final String name, final SchemaGuess.GuessedType type) {
+    protected ConfigDiff newColumn(final String name, final GuesstimatedType type) {
         final ConfigDiff column = newConfigDiff();
         column.set("name", name);
         column.set("type", type.toString());
@@ -604,41 +606,47 @@ public class CsvGuessPlugin implements GuessPlugin {
         return data.toByteArray();
     }
 
+    @SuppressWarnings("unchecked")
+    private static List<GuesstimatedType> typesFromListRecords(final List<List<String>> samples) {
+        final List<? extends List<? extends Object>> sampleObjects = (List<? extends List<? extends Object>>) samples;
+        return SCHEMA_GUESS.typesFromListRecords((List<List<Object>>) sampleObjects);
+    }
+
     private static final ConfigMapperFactory CONFIG_MAPPER_FACTORY = ConfigMapperFactory.builder().addDefaultModules().build();
 
-    private static List<Character> DELIMITER_CANDIDATES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<Character> DELIMITER_CANDIDATES = Collections.unmodifiableList(Arrays.asList(
             ',',
             '\t',
             '|',
             ';'
     ));
 
-    private static List<Character> QUOTE_CANDIDATES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<Character> QUOTE_CANDIDATES = Collections.unmodifiableList(Arrays.asList(
             '\"',
             '\''
     ));
 
-    private static List<String> ESCAPE_CANDIDATES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<String> ESCAPE_CANDIDATES = Collections.unmodifiableList(Arrays.asList(
             "\\",
             "\""
     ));
 
-    private static List<String> NULL_STRING_CANDIDATES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<String> NULL_STRING_CANDIDATES = Collections.unmodifiableList(Arrays.asList(
             "null",
             "NULL",
             "#N/A",
             "\\N"  // MySQL LOAD, Hive STORED AS TEXTFILE
     ));
 
-    private static List<String> COMMENT_LINE_MARKER_CANDIDATES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<String> COMMENT_LINE_MARKER_CANDIDATES = Collections.unmodifiableList(Arrays.asList(
             "#",
             "//"
     ));
 
-    private static SchemaGuess SCHEMA_GUESS = SchemaGuess.of();
+    private static final SchemaGuess SCHEMA_GUESS = SchemaGuess.of(CONFIG_MAPPER_FACTORY);
 
-    private static int MAX_SKIP_LINES = 10;
-    private static int NO_SKIP_DETECT_LINES = 10;
+    private static final int MAX_SKIP_LINES = 10;
+    private static final int NO_SKIP_DETECT_LINES = 10;
 
     private static final Logger logger = LoggerFactory.getLogger(CsvGuessPlugin.class);
 }
