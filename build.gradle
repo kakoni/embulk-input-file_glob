@@ -57,6 +57,7 @@ subprojects {
     }
 
     afterEvaluate { project ->
+        rootProject.check.dependsOn project.check
         rootProject.release.dependsOn project.publishMavenPublicationToMavenCentralRepository
     }
 }
