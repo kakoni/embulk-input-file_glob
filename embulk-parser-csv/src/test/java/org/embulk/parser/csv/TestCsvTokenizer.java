@@ -61,9 +61,8 @@ public class TestCsvTokenizer {
 
     private static List<List<String>> parse(final CsvTokenizer.Builder builder, final int columns, final FileInput input) {
         LineDecoder decoder = LineDecoder.of(input, StandardCharsets.UTF_8, null);
-        final CsvTokenizer tokenizer = builder.build(decoder);
-
-        tokenizer.nextFile();
+        decoder.nextFile();
+        final CsvTokenizer tokenizer = builder.build(decoder.iterator());
 
         List<List<String>> records = new ArrayList<>();
         while (tokenizer.nextRecord()) {
@@ -376,9 +375,8 @@ public class TestCsvTokenizer {
         };
         final FileInput input = newFileInputFromLines("\n", lines);
         final LineDecoder decoder = LineDecoder.of(input, StandardCharsets.UTF_8, null);
-        final CsvTokenizer tokenizer = builder.build(decoder);
-
-        tokenizer.nextFile();
+        decoder.nextFile();
+        final CsvTokenizer tokenizer = builder.build(decoder.iterator());
 
         assertTrue(tokenizer.nextRecord());
         assertEquals("v1", tokenizer.nextColumn());

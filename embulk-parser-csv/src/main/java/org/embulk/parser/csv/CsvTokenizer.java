@@ -19,13 +19,13 @@ package org.embulk.parser.csv;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.embulk.util.text.LineDecoder;
 
 public class CsvTokenizer {
     private CsvTokenizer(
-            final LineDecoder input,
+            final Iterator<String> iterator,
             final char delimiterChar,
             final String delimiterFollowingString,
             final char quote,
@@ -49,7 +49,7 @@ public class CsvTokenizer {
 
         this.quotedValueLines = new ArrayList<>();
         this.unreadLines = new ArrayDeque<>();
-        this.input = input;
+        this.iterator = iterator;
 
         this.recordState = RecordState.END;  // initial state is end of a record. nextRecord() must be called first
         this.lineNumber = 0;
@@ -142,7 +142,7 @@ public class CsvTokenizer {
             return this;
         }
 
-        public CsvTokenizer build(final LineDecoder input) {
+        public CsvTokenizer build(final Iterator<String> iterator) {
             if (this.trimIfNotQuoted && this.quotesInQuotedFields != QuotesInQuotedFields.ACCEPT_ONLY_RFC4180_ESCAPED) {
                 // The combination makes some syntax very ambiguous such as:
                 //     val1,  \"\"val2\"\"  ,val3
@@ -150,7 +150,7 @@ public class CsvTokenizer {
                         "[quotes_in_quoted_fields != ACCEPT_ONLY_RFC4180_ESCAPED] is not allowed to specify with [trim_if_not_quoted = true]");
             }
             return new CsvTokenizer(
-                    input,
+                    iterator,
                     delimiterChar,
                     delimiterFollowingString,
                     quote,
@@ -185,11 +185,12 @@ public class CsvTokenizer {
     }
 
     public boolean skipHeaderLine() {
-        final boolean skipped = this.input.poll() != null;
-        if (skipped) {
-            this.lineNumber++;
+        if (!this.iterator.hasNext()) {
+            return false;
         }
-        return skipped;
+        this.iterator.next();
+        this.lineNumber++;
+        return true;
     }
 
     // returns skipped line
@@ -210,14 +211,6 @@ public class CsvTokenizer {
         }
         this.recordState = RecordState.END;
         return skippedLine;
-    }
-
-    public boolean nextFile() {
-        final boolean next = this.input.nextFile();
-        if (next) {
-            this.lineNumber = 0;
-        }
-        return next;
     }
 
     // used by guess-csv
@@ -245,10 +238,10 @@ public class CsvTokenizer {
             if (!this.unreadLines.isEmpty()) {
                 this.line = this.unreadLines.removeFirst();
             } else {
-                this.line = this.input.poll();
-                if (this.line == null) {
+                if (!this.iterator.hasNext()) {
                     return false;
                 }
+                this.line = this.iterator.next();
             }
             this.linePos = 0;
             this.lineNumber++;
@@ -625,6 +618,8 @@ public class CsvTokenizer {
 
     private static final char END_OF_LINE = '\0';
 
+    private final Iterator<String> iterator;
+
     private final char delimiterChar;
     private final String delimiterFollowingString;
     private final char quote;
@@ -634,7 +629,6 @@ public class CsvTokenizer {
     private final QuotesInQuotedFields quotesInQuotedFields;
     private final long maxQuotedFieldLength;
     private final String commentLineMarker;
-    private final LineDecoder input;
     private final String nullString;
 
     private final List<String> quotedValueLines;

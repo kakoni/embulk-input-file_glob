@@ -307,28 +307,26 @@ public class CsvGuessPlugin implements GuessPlugin {
             final CsvTokenizer tokenizer = buildCsvTokenizer(parserTask, sample);
 
             final ArrayList<List<String>> rows = new ArrayList<>();
-            while (tokenizer.nextFile()) {
-                while (tokenizer.nextRecord(skipEmptyLines)) {
-                    try {
-                        final ArrayList<String> columns = new ArrayList<>();
-                        while (true) {
-                            try {
-                                final String column = tokenizer.nextColumn();
-                                final boolean quoted = tokenizer.wasQuotedColumn();
-                                if (nullString != null && !quoted && nullString.equals(column)) {
-                                    columns.add(null);
-                                } else {
-                                    columns.add(column);
-                                }
-                            } catch (final TooFewColumnsException ex) {
-                                rows.add(Collections.unmodifiableList(columns));
-                                break;
+            while (tokenizer.nextRecord(skipEmptyLines)) {
+                try {
+                    final ArrayList<String> columns = new ArrayList<>();
+                    while (true) {
+                        try {
+                            final String column = tokenizer.nextColumn();
+                            final boolean quoted = tokenizer.wasQuotedColumn();
+                            if (nullString != null && !quoted && nullString.equals(column)) {
+                                columns.add(null);
+                            } else {
+                                columns.add(column);
                             }
+                        } catch (final TooFewColumnsException ex) {
+                            rows.add(Collections.unmodifiableList(columns));
+                            break;
                         }
-                    } catch (final InvalidValueException ex) {
-                        // TODO warning
-                        tokenizer.skipCurrentLine();
                     }
+                } catch (final InvalidValueException ex) {
+                    // TODO warning
+                    tokenizer.skipCurrentLine();
                 }
             }
             return Collections.unmodifiableList(rows);
@@ -366,7 +364,8 @@ public class CsvGuessPlugin implements GuessPlugin {
         final LineDecoder decoder = LineDecoder.of(
                 new ListFileInput(listListBuffer), parserTask.getCharset(), parserTask.getLineDelimiterRecognized().orElse(null));
 
-        return builder.build(decoder);
+        decoder.nextFile();
+        return builder.build(decoder.iterator());
     }
 
     private String guessDelimiter(final List<String> sampleLines) {
