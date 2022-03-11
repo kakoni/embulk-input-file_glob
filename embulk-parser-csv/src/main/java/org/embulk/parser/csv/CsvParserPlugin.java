@@ -314,8 +314,7 @@ public class CsvParserPlugin implements ParserPlugin {
         final PluginTask task = CONFIG_MAPPER_FACTORY.createTaskMapper().map(taskSource, PluginTask.class);
         final TimestampFormatter[] timestampFormatters = newTimestampColumnFormatters(task, task.getSchemaConfig());
         final JsonParser jsonParser = new JsonParser();
-        final CsvTokenizer tokenizer = new CsvTokenizer(
-                LineDecoder.of(input, task.getCharset(), task.getLineDelimiterRecognized().orElse(null)), task);
+        final CsvTokenizer tokenizer = buildCsvTokenizer(task, input);
         final boolean allowOptionalColumns = task.getAllowOptionalColumns();
         final boolean allowExtraColumns = task.getAllowExtraColumns();
         final boolean stopOnInvalidRecord = task.getStopOnInvalidRecord();
@@ -467,6 +466,23 @@ public class CsvParserPlugin implements ParserPlugin {
         CsvRecordValidateException(Throwable cause) {
             super(cause);
         }
+    }
+
+    private static CsvTokenizer buildCsvTokenizer(final PluginTask task, final FileInput input) {
+        final CsvTokenizer.Builder builder = CsvTokenizer.builder(task.getDelimiter());
+        task.getQuoteChar().ifPresent(q -> builder.setQuote(q.getCharacter()));
+        task.getEscapeChar().ifPresent(e -> builder.setEscape(e.getCharacter()));
+        builder.setNewline(task.getNewline().getString());
+        if (task.getTrimIfNotQuoted()) {
+            builder.enableTrimIfNotQuoted();
+        }
+        if (task.getQuotesInQuotedFields() == QuotesInQuotedFields.ACCEPT_STRAY_QUOTES_ASSUMING_NO_DELIMITERS_IN_FIELDS) {
+            builder.acceptStrayQuotesAssumingNoDelimitersInFields();
+        }
+        builder.setMaxQuotedFieldLength(task.getMaxQuotedSizeLimit());
+        task.getCommentLineMarker().ifPresent(m -> builder.setCommentLineMarker(m));
+        task.getNullString().ifPresent(n -> builder.setNullString(n));
+        return builder.build(LineDecoder.of(input, task.getCharset(), task.getLineDelimiterRecognized().orElse(null)));
     }
 
     @SuppressWarnings("deprecation")  // For the use of new PageBuilder().
