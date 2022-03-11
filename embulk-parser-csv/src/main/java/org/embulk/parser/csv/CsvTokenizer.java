@@ -22,7 +22,6 @@ import java.util.Deque;
 import java.util.List;
 import org.embulk.config.ConfigException;
 import org.embulk.parser.csv.CsvParserPlugin.QuotesInQuotedFields;
-import org.embulk.spi.DataException;
 import org.embulk.util.text.LineDecoder;
 
 public class CsvTokenizer {
@@ -62,35 +61,6 @@ public class CsvTokenizer {
         this.wasQuotedColumn = false;
     }
 
-    public static class InvalidFormatException extends DataException {
-        public InvalidFormatException(final String message) {
-            super(message);
-        }
-    }
-
-    public static class InvalidValueException extends DataException {
-        public InvalidValueException(final String message) {
-            super(message);
-        }
-    }
-
-    public static class QuotedSizeLimitExceededException extends InvalidValueException {
-        public QuotedSizeLimitExceededException(final String message) {
-            super(message);
-        }
-    }
-
-    public class TooManyColumnsException extends InvalidFormatException {
-        public TooManyColumnsException(final String message) {
-            super(message);
-        }
-    }
-
-    public class TooFewColumnsException extends InvalidFormatException {
-        public TooFewColumnsException(final String message) {
-            super(message);
-        }
-    }
 
     public long getCurrentLineNumber() {
         return this.lineNumber;
