@@ -16,8 +16,11 @@
 
 package org.embulk.parser.csv;
 
-public class QuotedSizeLimitExceededException extends InvalidCsvQuotationException {
-    public QuotedSizeLimitExceededException(final String message) {
-        super(message);
+public class QuotedFieldLengthLimitExceededException extends InvalidCsvQuotationException {
+    public QuotedFieldLengthLimitExceededException(final long quotedFieldLengthLimit) {
+        super("The length of the quoted field exceeds the limit (" + quotedFieldLengthLimit + ")");
+        this.quotedFieldLengthLimit = quotedFieldLengthLimit;
     }
+
+    private final long quotedFieldLengthLimit;
 }

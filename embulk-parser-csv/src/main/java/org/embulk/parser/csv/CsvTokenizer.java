@@ -423,7 +423,7 @@ public class CsvTokenizer {
                             // A non-escaped stray "quote character" in the field is processed as a regular character
                             // if ACCEPT_STRAY_QUOTES_ASSUMING_NO_DELIMITERS_IN_FIELDS is specified,
                             if ((this.linePos - valueStartPos) + quotedValue.length() > this.maxQuotedFieldLength) {
-                                throw new QuotedSizeLimitExceededException("The size of the quoted value exceeds the limit size (" + this.maxQuotedFieldLength + ")");
+                                throw new QuotedFieldLengthLimitExceededException(this.maxQuotedFieldLength);
                             }
                         } else {
                             quotedValue.append(this.line.substring(valueStartPos, this.linePos - 1));
@@ -449,7 +449,7 @@ public class CsvTokenizer {
 
                     } else {
                         if ((this.linePos - valueStartPos) + quotedValue.length() > this.maxQuotedFieldLength) {
-                            throw new QuotedSizeLimitExceededException("The size of the quoted value exceeds the limit size (" + this.maxQuotedFieldLength + ")");
+                            throw new QuotedFieldLengthLimitExceededException(this.maxQuotedFieldLength);
                         }
                         // keep QUOTED_VALUE state
                     }
