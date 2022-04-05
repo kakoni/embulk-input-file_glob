@@ -16,8 +16,8 @@
 
 package org.embulk.parser.csv;
 
-public class TooManyColumnsException extends InvalidCsvFormatException {
-    public TooManyColumnsException(final String message) {
-        super(message);
+public class RecordHasUnexpectedTrailingColumnException extends InvalidCsvFormatException {
+    public RecordHasUnexpectedTrailingColumnException() {
+        super("A record has an unexpected trailing column (i.e. too many columns).");
     }
 }

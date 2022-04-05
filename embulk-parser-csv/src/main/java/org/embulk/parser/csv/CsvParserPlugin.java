@@ -431,7 +431,7 @@ public class CsvParserPlugin implements ParserPlugin {
 
                         try {
                             hasNextRecord = tokenizer.nextRecord();
-                        } catch (TooManyColumnsException ex) {
+                        } catch (final RecordHasUnexpectedTrailingColumnException ex) {
                             if (allowExtraColumns) {
                                 String tooManyColumnsLine = tokenizer.skipCurrentLine();
                                 // TODO warning

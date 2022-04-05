@@ -221,7 +221,7 @@ public class CsvTokenizer {
     public boolean nextRecord(final boolean skipEmptyLine) {
         // If at the end of record, read the next line and initialize the state
         if (this.recordState != RecordState.END) {
-            throw new TooManyColumnsException("Too many columns");
+            throw new RecordHasUnexpectedTrailingColumnException();
         }
 
         final boolean hasNext = this.nextLine(skipEmptyLine);
@@ -260,7 +260,7 @@ public class CsvTokenizer {
 
     public String nextColumn() {
         if (!this.hasNextColumn()) {
-            throw new TooFewColumnsException("Too few columns");
+            throw new RecordDoesNotHaveExpectedColumnException();
         }
 
         // reset last state
