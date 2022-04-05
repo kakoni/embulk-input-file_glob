@@ -443,7 +443,7 @@ public class CsvParserPlugin implements ParserPlugin {
                         }
                         pageBuilder.addRecord();
 
-                    } catch (InvalidFormatException | InvalidValueException | CsvRecordValidateException e) {
+                    } catch (InvalidCsvFormatException | InvalidCsvQuotationException | CsvRecordValidateException e) {
                         String skippedLine = tokenizer.skipCurrentLine();
                         long lineNumber = tokenizer.getCurrentLineNumber();
                         if (stopOnInvalidRecord) {

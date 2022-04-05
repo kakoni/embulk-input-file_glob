@@ -18,8 +18,8 @@ package org.embulk.parser.csv;
 
 import org.embulk.spi.DataException;
 
-public class InvalidValueException extends DataException {
-    public InvalidValueException(final String message) {
+public class InvalidCsvQuotationException extends DataException {
+    public InvalidCsvQuotationException(final String message) {
         super(message);
     }
 }

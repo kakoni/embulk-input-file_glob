@@ -300,7 +300,7 @@ public class TestCsvTokenizer {
             parse(builder, "\n", 2, "\"foo\"bar\",\"hoge\"fuga\"");
             fail();
         } catch (Exception e) {
-            assertTrue(e instanceof InvalidValueException);
+            assertTrue(e instanceof InvalidCsvQuotationException);
             assertEquals("Unexpected extra character 'b' after a value quoted by '\"'", e.getMessage());
             return;
         }
@@ -314,7 +314,7 @@ public class TestCsvTokenizer {
             parse(builder, "\n", 2, "\"foo\"bar\",\"hoge\"fuga\"");
             fail();
         } catch (Exception e) {
-            assertTrue(e instanceof InvalidValueException);
+            assertTrue(e instanceof InvalidCsvQuotationException);
             assertEquals("Unexpected extra character 'b' after a value quoted by '\"'", e.getMessage());
             return;
         }

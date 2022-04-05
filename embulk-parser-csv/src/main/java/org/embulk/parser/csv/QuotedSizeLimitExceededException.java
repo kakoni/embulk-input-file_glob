@@ -16,7 +16,7 @@
 
 package org.embulk.parser.csv;
 
-public class QuotedSizeLimitExceededException extends InvalidValueException {
+public class QuotedSizeLimitExceededException extends InvalidCsvQuotationException {
     public QuotedSizeLimitExceededException(final String message) {
         super(message);
     }

@@ -402,7 +402,7 @@ public class CsvTokenizer {
                         quotedValue.append(this.newline);
                         this.quotedValueLines.add(this.line);
                         if (!this.nextLine(false)) {
-                            throw new InvalidValueException("Unexpected end of line during parsing a quoted value");
+                            throw new InvalidCsvQuotationException("Unexpected end of line during parsing a quoted value");
                         }
                         valueStartPos = 0;
 
@@ -438,7 +438,7 @@ public class CsvTokenizer {
                             quotedValue.append(this.line.substring(valueStartPos, this.linePos));
                             this.quotedValueLines.add(this.line);
                             if (!this.nextLine(false)) {
-                                throw new InvalidValueException("Unexpected end of line during parsing a quoted value");
+                                throw new InvalidCsvQuotationException("Unexpected end of line during parsing a quoted value");
                             }
                             valueStartPos = 0;
                         } else if (this.isQuote(next) || this.isEscape(next)) { // escaped quote
@@ -473,7 +473,7 @@ public class CsvTokenizer {
                         // column has trailing spaces and quoted. TODO should this be rejected?
 
                     } else {
-                        throw new InvalidValueException(String.format("Unexpected extra character '%c' after a value quoted by '%c'", c, this.quote));
+                        throw new InvalidCsvQuotationException(String.format("Unexpected extra character '%c' after a value quoted by '%c'", c, this.quote));
                     }
                     break;
 

@@ -18,8 +18,8 @@ package org.embulk.parser.csv;
 
 import org.embulk.spi.DataException;
 
-public class InvalidFormatException extends DataException {
-    public InvalidFormatException(final String message) {
+public class InvalidCsvFormatException extends DataException {
+    public InvalidCsvFormatException(final String message) {
         super(message);
     }
 }
