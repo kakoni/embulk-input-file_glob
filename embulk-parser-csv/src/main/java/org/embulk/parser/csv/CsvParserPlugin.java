@@ -447,7 +447,7 @@ public class CsvParserPlugin implements ParserPlugin {
                         }
                         pageBuilder.addRecord();
 
-                    } catch (InvalidCsvFormatException | InvalidCsvQuotationException | CsvRecordValidateException e) {
+                    } catch (final InvalidCsvFormatException | CsvRecordValidateException e) {
                         String skippedLine = tokenizer.skipCurrentLine();
                         long lineNumber = tokenizer.getCurrentLineNumber();
                         if (stopOnInvalidRecord) {
