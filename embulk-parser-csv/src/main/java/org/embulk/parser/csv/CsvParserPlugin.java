@@ -334,9 +334,13 @@ public class CsvParserPlugin implements ParserPlugin {
                     }
                 }
 
-                if (!tokenizer.nextRecord()) {
-                    // empty file
-                    continue;
+                try {
+                    if (!tokenizer.nextRecord()) {
+                        // empty file
+                        continue;
+                    }
+                } catch (final InvalidCsvFormatException ex) {
+                    throw new DataException(ex);
                 }
 
                 while (true) {

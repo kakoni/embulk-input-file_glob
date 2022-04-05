@@ -16,9 +16,7 @@
 
 package org.embulk.parser.csv;
 
-import org.embulk.spi.DataException;
-
-public class InvalidCsvQuotationException extends DataException {
+public abstract class InvalidCsvQuotationException extends RuntimeException {
     public InvalidCsvQuotationException(final String message) {
         super(message);
     }

@@ -16,9 +16,7 @@
 
 package org.embulk.parser.csv;
 
-import org.embulk.spi.DataException;
-
-public class InvalidCsvFormatException extends DataException {
+public abstract class InvalidCsvFormatException extends RuntimeException {
     public InvalidCsvFormatException(final String message) {
         super(message);
     }
