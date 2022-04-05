@@ -472,20 +472,24 @@ public class CsvParserPlugin implements ParserPlugin {
     }
 
     private static CsvTokenizer.Builder buildCsvTokenizerBuilder(final PluginTask task) {
-        final CsvTokenizer.Builder builder = CsvTokenizer.builder(task.getDelimiter());
-        task.getQuoteChar().ifPresent(q -> builder.setQuote(q.getCharacter()));
-        task.getEscapeChar().ifPresent(e -> builder.setEscape(e.getCharacter()));
-        builder.setNewline(task.getNewline().getString());
-        if (task.getTrimIfNotQuoted()) {
-            builder.enableTrimIfNotQuoted();
+        try {
+            final CsvTokenizer.Builder builder = CsvTokenizer.builder(task.getDelimiter());
+            task.getQuoteChar().ifPresent(q -> builder.setQuote(q.getCharacter()));
+            task.getEscapeChar().ifPresent(e -> builder.setEscape(e.getCharacter()));
+            builder.setNewline(task.getNewline().getString());
+            if (task.getTrimIfNotQuoted()) {
+                builder.enableTrimIfNotQuoted();
+            }
+            if (task.getQuotesInQuotedFields() == QuotesInQuotedFields.ACCEPT_STRAY_QUOTES_ASSUMING_NO_DELIMITERS_IN_FIELDS) {
+                builder.acceptStrayQuotesAssumingNoDelimitersInFields();
+            }
+            builder.setMaxQuotedFieldLength(task.getMaxQuotedSizeLimit());
+            task.getCommentLineMarker().ifPresent(m -> builder.setCommentLineMarker(m));
+            task.getNullString().ifPresent(n -> builder.setNullString(n));
+            return builder;
+        } catch (final RuntimeException ex) {
+            throw new ConfigException(ex);
         }
-        if (task.getQuotesInQuotedFields() == QuotesInQuotedFields.ACCEPT_STRAY_QUOTES_ASSUMING_NO_DELIMITERS_IN_FIELDS) {
-            builder.acceptStrayQuotesAssumingNoDelimitersInFields();
-        }
-        builder.setMaxQuotedFieldLength(task.getMaxQuotedSizeLimit());
-        task.getCommentLineMarker().ifPresent(m -> builder.setCommentLineMarker(m));
-        task.getNullString().ifPresent(n -> builder.setNullString(n));
-        return builder;
     }
 
     @SuppressWarnings("deprecation")  // For the use of new PageBuilder().
