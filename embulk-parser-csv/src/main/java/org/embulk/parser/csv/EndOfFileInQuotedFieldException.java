@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 The Embulk project
+ * Copyright 2022 The Embulk project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 package org.embulk.parser.csv;
 
-public class QuotedSizeLimitExceededException extends InvalidValueException {
-    public QuotedSizeLimitExceededException(final String message) {
-        super(message);
+public class EndOfFileInQuotedFieldException extends InvalidCsvQuotationException {
+    public EndOfFileInQuotedFieldException() {
+        super("Unexpected end of file in a quoted field.");
     }
 }

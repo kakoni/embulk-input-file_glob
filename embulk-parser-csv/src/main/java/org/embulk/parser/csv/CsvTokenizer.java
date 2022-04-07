@@ -221,7 +221,7 @@ public class CsvTokenizer {
     public boolean nextRecord(final boolean skipEmptyLine) {
         // If at the end of record, read the next line and initialize the state
         if (this.recordState != RecordState.END) {
-            throw new TooManyColumnsException("Too many columns");
+            throw new RecordHasUnexpectedTrailingColumnException();
         }
 
         final boolean hasNext = this.nextLine(skipEmptyLine);
@@ -260,7 +260,7 @@ public class CsvTokenizer {
 
     public String nextColumn() {
         if (!this.hasNextColumn()) {
-            throw new TooFewColumnsException("Too few columns");
+            throw new RecordDoesNotHaveExpectedColumnException();
         }
 
         // reset last state
@@ -402,7 +402,7 @@ public class CsvTokenizer {
                         quotedValue.append(this.newline);
                         this.quotedValueLines.add(this.line);
                         if (!this.nextLine(false)) {
-                            throw new InvalidValueException("Unexpected end of line during parsing a quoted value");
+                            throw new EndOfFileInQuotedFieldException();
                         }
                         valueStartPos = 0;
 
@@ -423,7 +423,7 @@ public class CsvTokenizer {
                             // A non-escaped stray "quote character" in the field is processed as a regular character
                             // if ACCEPT_STRAY_QUOTES_ASSUMING_NO_DELIMITERS_IN_FIELDS is specified,
                             if ((this.linePos - valueStartPos) + quotedValue.length() > this.maxQuotedFieldLength) {
-                                throw new QuotedSizeLimitExceededException("The size of the quoted value exceeds the limit size (" + this.maxQuotedFieldLength + ")");
+                                throw new QuotedFieldLengthLimitExceededException(this.maxQuotedFieldLength);
                             }
                         } else {
                             quotedValue.append(this.line.substring(valueStartPos, this.linePos - 1));
@@ -438,7 +438,7 @@ public class CsvTokenizer {
                             quotedValue.append(this.line.substring(valueStartPos, this.linePos));
                             this.quotedValueLines.add(this.line);
                             if (!this.nextLine(false)) {
-                                throw new InvalidValueException("Unexpected end of line during parsing a quoted value");
+                                throw new EndOfFileInQuotedFieldException();
                             }
                             valueStartPos = 0;
                         } else if (this.isQuote(next) || this.isEscape(next)) { // escaped quote
@@ -449,7 +449,7 @@ public class CsvTokenizer {
 
                     } else {
                         if ((this.linePos - valueStartPos) + quotedValue.length() > this.maxQuotedFieldLength) {
-                            throw new QuotedSizeLimitExceededException("The size of the quoted value exceeds the limit size (" + this.maxQuotedFieldLength + ")");
+                            throw new QuotedFieldLengthLimitExceededException(this.maxQuotedFieldLength);
                         }
                         // keep QUOTED_VALUE state
                     }
@@ -473,7 +473,7 @@ public class CsvTokenizer {
                         // column has trailing spaces and quoted. TODO should this be rejected?
 
                     } else {
-                        throw new InvalidValueException(String.format("Unexpected extra character '%c' after a value quoted by '%c'", c, this.quote));
+                        throw new InvalidCharacterAfterQuoteException(c, this.quote);
                     }
                     break;
 

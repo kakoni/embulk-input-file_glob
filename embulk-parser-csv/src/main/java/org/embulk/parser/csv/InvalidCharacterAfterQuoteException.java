@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 The Embulk project
+ * Copyright 2022 The Embulk project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,13 @@
 
 package org.embulk.parser.csv;
 
-import org.embulk.spi.DataException;
-
-public class InvalidValueException extends DataException {
-    public InvalidValueException(final String message) {
-        super(message);
+public class InvalidCharacterAfterQuoteException extends InvalidCsvQuotationException {
+    public InvalidCharacterAfterQuoteException(final char extraChar, final char quoteChar) {
+        super(String.format("Unexpected extra character '%c' after a quote by '%c'.", extraChar, quoteChar));
+        this.extraChar = extraChar;
+        this.quoteChar = quoteChar;
     }
+
+    private final char extraChar;
+    private final char quoteChar;
 }

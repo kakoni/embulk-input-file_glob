@@ -31,8 +31,8 @@ import org.embulk.config.ConfigDiff;
 import org.embulk.config.ConfigSource;
 import org.embulk.parser.csv.CsvParserPlugin;
 import org.embulk.parser.csv.CsvTokenizer;
-import org.embulk.parser.csv.InvalidValueException;
-import org.embulk.parser.csv.TooFewColumnsException;
+import org.embulk.parser.csv.InvalidCsvQuotationException;
+import org.embulk.parser.csv.RecordDoesNotHaveExpectedColumnException;
 import org.embulk.spi.Buffer;
 import org.embulk.spi.BufferAllocator;
 import org.embulk.spi.Exec;
@@ -319,12 +319,12 @@ public class CsvGuessPlugin implements GuessPlugin {
                             } else {
                                 columns.add(column);
                             }
-                        } catch (final TooFewColumnsException ex) {
+                        } catch (final RecordDoesNotHaveExpectedColumnException ex) {
                             rows.add(Collections.unmodifiableList(columns));
                             break;
                         }
                     }
-                } catch (final InvalidValueException ex) {
+                } catch (final InvalidCsvQuotationException ex) {
                     // TODO warning
                     tokenizer.skipCurrentLine();
                 }

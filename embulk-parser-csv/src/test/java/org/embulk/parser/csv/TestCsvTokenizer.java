@@ -300,8 +300,8 @@ public class TestCsvTokenizer {
             parse(builder, "\n", 2, "\"foo\"bar\",\"hoge\"fuga\"");
             fail();
         } catch (Exception e) {
-            assertTrue(e instanceof InvalidValueException);
-            assertEquals("Unexpected extra character 'b' after a value quoted by '\"'", e.getMessage());
+            assertTrue(e instanceof InvalidCharacterAfterQuoteException);
+            assertEquals("Unexpected extra character 'b' after a quote by '\"'.", e.getMessage());
             return;
         }
     }
@@ -314,8 +314,8 @@ public class TestCsvTokenizer {
             parse(builder, "\n", 2, "\"foo\"bar\",\"hoge\"fuga\"");
             fail();
         } catch (Exception e) {
-            assertTrue(e instanceof InvalidValueException);
-            assertEquals("Unexpected extra character 'b' after a value quoted by '\"'", e.getMessage());
+            assertTrue(e instanceof InvalidCharacterAfterQuoteException);
+            assertEquals("Unexpected extra character 'b' after a quote by '\"'.", e.getMessage());
             return;
         }
     }
@@ -338,7 +338,7 @@ public class TestCsvTokenizer {
     }
 
     @Test
-    public void throwQuotedSizeLimitExceededException() throws Exception {
+    public void throwQuotedFieldLengthLimitExceededException() throws Exception {
         final CsvTokenizer.Builder builder = initialBuilder();
         builder.setMaxQuotedFieldLength(8);
 
@@ -348,7 +348,7 @@ public class TestCsvTokenizer {
                     "v3,\"0123456789\"");
             fail();
         } catch (Exception e) {
-            assertTrue(e instanceof QuotedSizeLimitExceededException);
+            assertTrue(e instanceof QuotedFieldLengthLimitExceededException);
         }
 
         // multi-line
@@ -358,12 +358,12 @@ public class TestCsvTokenizer {
                     "\"012345\n6789\",v3");
             fail();
         } catch (Exception e) {
-            assertTrue(e instanceof QuotedSizeLimitExceededException);
+            assertTrue(e instanceof QuotedFieldLengthLimitExceededException);
         }
     }
 
     @Test
-    public void recoverFromQuotedSizeLimitExceededException() throws Exception {
+    public void recoverFromQuotedFieldLengthLimitExceededException() throws Exception {
         final CsvTokenizer.Builder builder = initialBuilder();
         builder.setMaxQuotedFieldLength(12);
 
@@ -388,7 +388,7 @@ public class TestCsvTokenizer {
             tokenizer.nextColumn();
             fail();
         } catch (Exception e) {
-            assertTrue(e instanceof QuotedSizeLimitExceededException);
+            assertTrue(e instanceof QuotedFieldLengthLimitExceededException);
         }
         assertEquals("v3,\"0123", tokenizer.skipCurrentLine());
 

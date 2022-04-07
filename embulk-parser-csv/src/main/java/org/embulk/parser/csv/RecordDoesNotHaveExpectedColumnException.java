@@ -16,8 +16,8 @@
 
 package org.embulk.parser.csv;
 
-public class TooManyColumnsException extends InvalidFormatException {
-    public TooManyColumnsException(final String message) {
-        super(message);
+public class RecordDoesNotHaveExpectedColumnException extends InvalidCsvFormatException {
+    public RecordDoesNotHaveExpectedColumnException() {
+        super("A record does not have an expected column (i.e. too few columns).");
     }
 }
