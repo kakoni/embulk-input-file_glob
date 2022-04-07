@@ -31,6 +31,8 @@ import org.embulk.config.ConfigDiff;
 import org.embulk.config.ConfigSource;
 import org.embulk.parser.csv.CsvParserPlugin;
 import org.embulk.parser.csv.CsvTokenizer;
+import org.embulk.parser.csv.InvalidValueException;
+import org.embulk.parser.csv.TooFewColumnsException;
 import org.embulk.spi.Buffer;
 import org.embulk.spi.BufferAllocator;
 import org.embulk.spi.Exec;
@@ -324,12 +326,12 @@ public class CsvGuessPlugin implements GuessPlugin {
                                 } else {
                                     columns.add(column);
                                 }
-                            } catch (final CsvTokenizer.TooFewColumnsException ex) {
+                            } catch (final TooFewColumnsException ex) {
                                 rows.add(Collections.unmodifiableList(columns));
                                 break;
                             }
                         }
-                    } catch (final CsvTokenizer.InvalidValueException ex) {
+                    } catch (final InvalidValueException ex) {
                         // TODO warning
                         tokenizer.skipCurrentLine();
                     }

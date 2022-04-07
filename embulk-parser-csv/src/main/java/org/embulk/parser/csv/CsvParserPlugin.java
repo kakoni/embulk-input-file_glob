@@ -429,7 +429,7 @@ public class CsvParserPlugin implements ParserPlugin {
 
                         try {
                             hasNextRecord = tokenizer.nextRecord();
-                        } catch (CsvTokenizer.TooManyColumnsException ex) {
+                        } catch (TooManyColumnsException ex) {
                             if (allowExtraColumns) {
                                 String tooManyColumnsLine = tokenizer.skipCurrentLine();
                                 // TODO warning
@@ -441,7 +441,7 @@ public class CsvParserPlugin implements ParserPlugin {
                         }
                         pageBuilder.addRecord();
 
-                    } catch (CsvTokenizer.InvalidFormatException | CsvTokenizer.InvalidValueException | CsvRecordValidateException e) {
+                    } catch (InvalidFormatException | InvalidValueException | CsvRecordValidateException e) {
                         String skippedLine = tokenizer.skipCurrentLine();
                         long lineNumber = tokenizer.getCurrentLineNumber();
                         if (stopOnInvalidRecord) {
