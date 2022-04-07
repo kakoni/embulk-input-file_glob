@@ -314,14 +314,17 @@ public class CsvParserPlugin implements ParserPlugin {
         final PluginTask task = CONFIG_MAPPER_FACTORY.createTaskMapper().map(taskSource, PluginTask.class);
         final TimestampFormatter[] timestampFormatters = newTimestampColumnFormatters(task, task.getSchemaConfig());
         final JsonParser jsonParser = new JsonParser();
-        final CsvTokenizer tokenizer = buildCsvTokenizer(task, input);
+        final CsvTokenizer.Builder tokenizerBuilder = buildCsvTokenizerBuilder(task);
         final boolean allowOptionalColumns = task.getAllowOptionalColumns();
         final boolean allowExtraColumns = task.getAllowExtraColumns();
         final boolean stopOnInvalidRecord = task.getStopOnInvalidRecord();
         final int skipHeaderLines = task.getSkipHeaderLines();
 
         try (final PageBuilder pageBuilder = getPageBuilder(Exec.getBufferAllocator(), schema, output)) {
-            while (tokenizer.nextFile()) {
+            while (input.nextFile()) {
+                final CsvTokenizer tokenizer = tokenizerBuilder.build(
+                        LineDecoder.of(input, task.getCharset(), task.getLineDelimiterRecognized().orElse(null)).iterator());
+
                 final String fileName = input.hintOfCurrentInputFileNameForLogging().orElse("-");
 
                 // skip the header lines for each file
@@ -468,7 +471,7 @@ public class CsvParserPlugin implements ParserPlugin {
         }
     }
 
-    private static CsvTokenizer buildCsvTokenizer(final PluginTask task, final FileInput input) {
+    private static CsvTokenizer.Builder buildCsvTokenizerBuilder(final PluginTask task) {
         final CsvTokenizer.Builder builder = CsvTokenizer.builder(task.getDelimiter());
         task.getQuoteChar().ifPresent(q -> builder.setQuote(q.getCharacter()));
         task.getEscapeChar().ifPresent(e -> builder.setEscape(e.getCharacter()));
@@ -482,7 +485,7 @@ public class CsvParserPlugin implements ParserPlugin {
         builder.setMaxQuotedFieldLength(task.getMaxQuotedSizeLimit());
         task.getCommentLineMarker().ifPresent(m -> builder.setCommentLineMarker(m));
         task.getNullString().ifPresent(n -> builder.setNullString(n));
-        return builder.build(LineDecoder.of(input, task.getCharset(), task.getLineDelimiterRecognized().orElse(null)));
+        return builder;
     }
 
     @SuppressWarnings("deprecation")  // For the use of new PageBuilder().
