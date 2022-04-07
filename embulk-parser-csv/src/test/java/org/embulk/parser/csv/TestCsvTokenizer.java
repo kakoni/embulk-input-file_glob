@@ -20,81 +20,55 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import org.embulk.EmbulkTestRuntime;
-import org.embulk.config.ConfigSource;
 import org.embulk.spi.Buffer;
 import org.embulk.spi.BufferImpl;
-import org.embulk.spi.Column;
 import org.embulk.spi.FileInput;
-import org.embulk.spi.Schema;
-import org.embulk.util.config.ConfigMapperFactory;
 import org.embulk.util.file.ListFileInput;
 import org.embulk.util.text.LineDecoder;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 
 public class TestCsvTokenizer {
-    @Rule
-    public EmbulkTestRuntime runtime = new EmbulkTestRuntime();
-
-    protected ConfigSource config;
-    protected CsvParserPlugin.PluginTask task;
-
-    private static final ConfigMapperFactory CONFIG_MAPPER_FACTORY = ConfigMapperFactory.builder().addDefaultModules().build();
-
-    @Before
-    public void setup() {
-        config = CONFIG_MAPPER_FACTORY.newConfigSource()
-            .set("newline", "LF")
-            .set("columns", ImmutableList.of(
-                        ImmutableMap.<String,Object>of(
-                            "name", "date_code", "type", "string", "option", ImmutableMap.of()),
-                        ImmutableMap.<String,Object>of(
-                            "name", "foo", "type", "string", "option", ImmutableMap.of()))
-                );
-        reloadPluginTask();
+    private static CsvTokenizer.Builder initialBuilder(final String delimiter) {
+        return CsvTokenizer.builder(delimiter).setNewline("\n");
     }
 
-    private void reloadPluginTask() {
-        task = CONFIG_MAPPER_FACTORY.createConfigMapper().map(config, CsvParserPlugin.PluginTask.class);
+    private static CsvTokenizer.Builder initialBuilder() {
+        return initialBuilder(",");
     }
 
-    private static FileInput newFileInputFromLines(CsvParserPlugin.PluginTask task, String... lines) {
+    private static FileInput newFileInputFromLines(final String newline, final String... lines) {
         List<Buffer> buffers = new ArrayList<>();
         for (String line : lines) {
-            byte[] buffer = (line + task.getNewline().getString()).getBytes(task.getCharset());
+            byte[] buffer = (line + newline).getBytes(StandardCharsets.UTF_8);
             buffers.add(BufferImpl.wrap(buffer));
         }
-        return new ListFileInput(ImmutableList.of(buffers));
+        return new ListFileInput(Arrays.asList(buffers));
     }
 
-    private static FileInput newFileInputFromText(CsvParserPlugin.PluginTask task, String text) {
+    private static FileInput newFileInputFromText(final String newline, final String text) {
         return new ListFileInput(
-                ImmutableList.of(ImmutableList.of(
-                        BufferImpl.wrap(text.getBytes(task.getCharset())))));
+                Arrays.asList(Arrays.asList(
+                        BufferImpl.wrap(text.getBytes(StandardCharsets.UTF_8)))));
     }
 
-    private static List<List<String>> parse(CsvParserPlugin.PluginTask task, String... lines) {
-        return parse(task, newFileInputFromLines(task, lines));
+    private static List<List<String>> parse(final CsvTokenizer.Builder builder, final String newline, final int columns, final String... lines) {
+        return parse(builder, columns, newFileInputFromLines(newline, lines));
     }
 
-    private static List<List<String>> parse(CsvParserPlugin.PluginTask task, FileInput input) {
-        LineDecoder decoder = LineDecoder.of(input, task.getCharset(), task.getLineDelimiterRecognized().orElse(null));
-        CsvTokenizer tokenizer = new CsvTokenizer(decoder, task);
-        Schema schema = task.getSchemaConfig().toSchema();
+    private static List<List<String>> parse(final CsvTokenizer.Builder builder, final int columns, final FileInput input) {
+        LineDecoder decoder = LineDecoder.of(input, StandardCharsets.UTF_8, null);
+        final CsvTokenizer tokenizer = builder.build(decoder);
 
         tokenizer.nextFile();
 
         List<List<String>> records = new ArrayList<>();
         while (tokenizer.nextRecord()) {
             List<String> record = new ArrayList<>();
-            for (Column c : schema.getColumns()) {
+            for (int i = 0; i < columns; i++) {
                 String v = tokenizer.nextColumnOrNull();
                 record.add(v);
             }
@@ -118,31 +92,34 @@ public class TestCsvTokenizer {
 
     @Test
     public void testSimple() throws Exception {
+        final CsvTokenizer.Builder builder = initialBuilder();
         assertEquals(expectedRecords(2,
                     "aaa", "bbb",
                     "ccc", "ddd"),
-                parse(task,
+                parse(builder, "\n", 2,
                     "aaa,bbb",
                     "ccc,ddd"));
     }
 
     @Test
     public void testSkipEmptyLine() throws Exception {
+        final CsvTokenizer.Builder builder = initialBuilder();
         assertEquals(expectedRecords(2,
                     "aaa", "bbb",
                     "ccc", "ddd"),
-                parse(task,
+                parse(builder, "\n", 2,
                     "", "aaa,bbb", "", "",
                     "ccc,ddd", "", ""));
     }
 
     @Test
     public void parseEmptyColumnsToNull() throws Exception {
+        final CsvTokenizer.Builder builder = initialBuilder();
         assertEquals(expectedRecords(2,
                     null, null,
                     "", "",
                     "  ", "  "), // not trimmed
-                parse(task,
+                parse(builder, "\n", 2,
                     ",",
                     "\"\",\"\"",
                     "  ,  "));
@@ -150,14 +127,14 @@ public class TestCsvTokenizer {
 
     @Test
     public void parseEmptyColumnsToNullTrimmed() throws Exception {
-        config.set("trim_if_not_quoted", true);
-        reloadPluginTask();
+        final CsvTokenizer.Builder builder = initialBuilder();
+        builder.enableTrimIfNotQuoted();
         assertEquals(
                 expectedRecords(2,
                     null, null,
                     "", "",
                     null, null),  // trimmed
-                parse(task,
+                parse(builder, "\n", 2,
                     ",",
                     "\"\",\"\"",
                     "  ,  "));
@@ -165,10 +142,11 @@ public class TestCsvTokenizer {
 
     @Test
     public void testMultilineQuotedValueWithEmptyLine() throws Exception {
+        final CsvTokenizer.Builder builder = initialBuilder();
         assertEquals(expectedRecords(2,
                     "a", "\nb\n\n",
                     "c", "d"),
-                parse(task,
+                parse(builder, "\n", 2,
                     "",
                     "a,\"", "b", "", "\"",
                     "c,d"));
@@ -176,78 +154,80 @@ public class TestCsvTokenizer {
 
     @Test
     public void testEndOfFileWithoutNewline() throws Exception {
+        final CsvTokenizer.Builder builder = initialBuilder();
         // In RFC 4180, the last record in the file may or may not have
         // an ending line break.
         assertEquals(expectedRecords(2,
                         "aaa", "bbb",
                         "ccc", "ddd"),
-                parse(task, newFileInputFromText(task,
+                parse(builder, 2, newFileInputFromText("\n",
                         "aaa,bbb\nccc,ddd")));
     }
 
     @Test
     public void testChangeDelimiter() throws Exception {
-        config.set("delimiter", JsonNodeFactory.instance.textNode("\t")); // TSV format
-        reloadPluginTask();
+        final CsvTokenizer.Builder builder = initialBuilder("\t");  // TSV format
         assertEquals(expectedRecords(2,
                         "aaa", "bbb",
                         "ccc", "ddd"),
-                parse(task,
+                parse(builder, "\n", 2,
                         "aaa\tbbb",
                         "ccc\tddd"));
     }
 
     @Test
     public void testDefaultNullString() throws Exception {
-        reloadPluginTask();
+        final CsvTokenizer.Builder builder = initialBuilder();
         assertEquals(expectedRecords(2,
                         null, "",
                         "NULL", "NULL"),
-                parse(task,
+                parse(builder, "\n", 2,
                         ",\"\"",
                         "NULL,\"NULL\""));
     }
 
     @Test
     public void testChangeNullString() throws Exception {
-        config.set("null_string", "NULL");
-        reloadPluginTask();
+        final CsvTokenizer.Builder builder = initialBuilder();
+        builder.setNullString("NULL");
         assertEquals(expectedRecords(2,
                         "", "",
                         null, null),
-                parse(task,
+                parse(builder, "\n", 2,
                         ",\"\"",
                         "NULL,\"NULL\""));
     }
 
     @Test
     public void testQuotedValues() throws Exception {
+        final CsvTokenizer.Builder builder = initialBuilder();
         assertEquals(expectedRecords(2,
                         "a\na\na", "b,bb",
                         "cc\"c", "\"ddd",
                         null, ""),
-                parse(task, newFileInputFromText(task,
+                parse(builder, 2, newFileInputFromText("\r\n",
                         "\n\"a\na\na\",\"b,bb\"\n\n\"cc\"\"c\",\"\"\"ddd\"\n,\"\"\n")));
     }
 
     @Test
     public void parseEscapedValues() throws Exception {
+        final CsvTokenizer.Builder builder = initialBuilder();
         assertEquals(expectedRecords(2,
                         "a\"aa", "b,bb\"",
                         "cc\"c", "\"ddd",
                         null, ""),
-                parse(task, newFileInputFromText(task,
+                parse(builder, 2, newFileInputFromText("\r\n",
                     "\n\"a\\\"aa\",\"b,bb\\\"\"\n\n\"cc\"\"c\",\"\"\"ddd\"\n,\"\"\n")));
     }
 
     @Test
     public void testCommentLineMarker() throws Exception {
-        config.set("comment_line_marker", JsonNodeFactory.instance.textNode("#"));
-        reloadPluginTask();
+        final CsvTokenizer.Builder builder = initialBuilder();
+        builder.setCommentLineMarker("#");
         assertEquals(expectedRecords(2,
                         "aaa", "bbb",
                         "eee", "fff"),
-                parse(task,
+                parse(builder, "\n", 2,
                         "aaa,bbb",
                         "#ccc,ddd",
                         "eee,fff"));
@@ -255,31 +235,32 @@ public class TestCsvTokenizer {
 
     @Test
     public void trimNonQuotedValues() throws Exception {
+        final CsvTokenizer.Builder builder = initialBuilder();
         assertEquals(expectedRecords(2,
                     "  aaa  ", "  b cd ",
                     "  ccc","dd d \n "), // quoted values are not changed
-                parse(task, newFileInputFromText(task,
+                parse(builder, 2, newFileInputFromText("\n",
                         "  aaa  ,  b cd \n\"  ccc\",\"dd d \n \"")));
 
+        final CsvTokenizer.Builder builder2 = initialBuilder();
         // trim_if_not_quoted is true
-        config.set("trim_if_not_quoted", true);
-        reloadPluginTask();
+        builder2.enableTrimIfNotQuoted();
         assertEquals(expectedRecords(2,
                     "aaa", "b cd",
                     "  ccc","dd d \n "), // quoted values are not changed
-                parse(task, newFileInputFromText(task,
+                parse(builder2, 2, newFileInputFromText("\n",
                         "  aaa  ,  b cd \n\"  ccc\",\"dd d \n \"")));
     }
 
     @Test
     public void parseQuotedValueWithSpacesAndTrimmingOption() throws Exception {
-        config.set("trim_if_not_quoted", true);
-        reloadPluginTask();
+        final CsvTokenizer.Builder builder = initialBuilder();
+        builder.enableTrimIfNotQuoted();
         assertEquals(expectedRecords(2,
                         "heading1", "heading2",
                         "trailing1","trailing2",
                         "trailing\n3","trailing\n4"),
-                parse(task,
+                parse(builder, "\n", 2,
                     "  \"heading1\",  \"heading2\"",
                     "\"trailing1\"  ,\"trailing2\"  ",
                     "\"trailing\n3\"  ,\"trailing\n4\"  "));
@@ -288,13 +269,13 @@ public class TestCsvTokenizer {
 
     @Test
     public void parseWithDefaultQuotesInQuotedFields() throws Exception {
-        reloadPluginTask();
+        final CsvTokenizer.Builder builder = initialBuilder();
         assertEquals(expectedRecords(
                          2,
                          "foo\"bar", "foofoo\"barbar",
                          "baz\"\"qux", "bazbaz\"\"quxqux"),
                      parse(
-                         task,
+                         builder, "\n", 2,
                          "\"foo\"\"bar\",\"foofoo\"\"barbar\"",
                          "\"baz\"\"\"\"qux\",\"bazbaz\"\"\"\"quxqux\""));
     }
@@ -302,23 +283,22 @@ public class TestCsvTokenizer {
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
     @Test
     public void parseWithQuotesInQuotedFields_ACCEPT_ONLY_RFC4180_ESCAPED() throws Exception {
-        config.set("quotes_in_quoted_fields", "ACCEPT_ONLY_RFC4180_ESCAPED");
-        reloadPluginTask();
+        final CsvTokenizer.Builder builder = initialBuilder();
         assertEquals(expectedRecords(
                          2,
                          "foo\"bar", "foofoo\"barbar",
                          "baz\"\"qux", "bazbaz\"\"quxqux"),
                      parse(
-                         task,
+                         builder, "\n", 2,
                          "\"foo\"\"bar\",\"foofoo\"\"barbar\"",
                          "\"baz\"\"\"\"qux\",\"bazbaz\"\"\"\"quxqux\""));
     }
 
     @Test
     public void throwWithDefaultQuotesInQuotedFields() throws Exception {
-        reloadPluginTask();
+        final CsvTokenizer.Builder builder = initialBuilder();
         try {
-            parse(task, "\"foo\"bar\",\"hoge\"fuga\"");
+            parse(builder, "\n", 2, "\"foo\"bar\",\"hoge\"fuga\"");
             fail();
         } catch (Exception e) {
             assertTrue(e instanceof InvalidValueException);
@@ -330,10 +310,9 @@ public class TestCsvTokenizer {
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
     @Test
     public void throwWithQuotesInQuotedFields_ACCEPT_ONLY_RFC4180_ESCAPED() throws Exception {
-        config.set("quotes_in_quoted_fields", "ACCEPT_ONLY_RFC4180_ESCAPED");
-        reloadPluginTask();
+        final CsvTokenizer.Builder builder = initialBuilder();
         try {
-            parse(task, "\"foo\"bar\",\"hoge\"fuga\"");
+            parse(builder, "\n", 2, "\"foo\"bar\",\"hoge\"fuga\"");
             fail();
         } catch (Exception e) {
             assertTrue(e instanceof InvalidValueException);
@@ -345,15 +324,15 @@ public class TestCsvTokenizer {
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
     @Test
     public void parseWithQuotesInQuotedFields_ACCEPT_STRAY_QUOTES_ASSUMING_NO_DELIMITERS_IN_FIELDS() throws Exception {
-        config.set("quotes_in_quoted_fields", "ACCEPT_STRAY_QUOTES_ASSUMING_NO_DELIMITERS_IN_FIELDS");
-        reloadPluginTask();
+        final CsvTokenizer.Builder builder = initialBuilder();
+        builder.acceptStrayQuotesAssumingNoDelimitersInFields();
         assertEquals(expectedRecords(
                          2,
                          "foo\"bar", "foofoo\"barbar",
                          "baz\"\"qux", "bazbaz\"\"quxqux",
                          "\"embulk\"", "\"embul\"\"k\""),
                      parse(
-                         task,
+                         builder, "\n", 2,
                          "\"foo\"bar\",\"foofoo\"\"barbar\"",
                          "\"baz\"\"\"qux\",\"bazbaz\"\"\"\"quxqux\"",
                          "\"\"\"embulk\"\",\"\"embul\"\"\"k\"\""));
@@ -361,11 +340,11 @@ public class TestCsvTokenizer {
 
     @Test
     public void throwQuotedSizeLimitExceededException() throws Exception {
-        config.set("max_quoted_size_limit", 8);
-        reloadPluginTask();
+        final CsvTokenizer.Builder builder = initialBuilder();
+        builder.setMaxQuotedFieldLength(8);
 
         try {
-            parse(task,
+            parse(builder, "\n", 2,
                     "v1,v2",
                     "v3,\"0123456789\"");
             fail();
@@ -375,7 +354,7 @@ public class TestCsvTokenizer {
 
         // multi-line
         try {
-            parse(task,
+            parse(builder, "\n", 2,
                     "v1,v2",
                     "\"012345\n6789\",v3");
             fail();
@@ -386,8 +365,8 @@ public class TestCsvTokenizer {
 
     @Test
     public void recoverFromQuotedSizeLimitExceededException() throws Exception {
-        config.set("max_quoted_size_limit", 12);
-        reloadPluginTask();
+        final CsvTokenizer.Builder builder = initialBuilder();
+        builder.setMaxQuotedFieldLength(12);
 
         String[] lines = new String[] {
             "v1,v2",
@@ -395,10 +374,9 @@ public class TestCsvTokenizer {
             "v4,v5",      // this line should be not be skiped
             "v6,v7",      // this line should be not be skiped
         };
-        FileInput input = newFileInputFromLines(task, lines);
-        LineDecoder decoder = LineDecoder.of(input, task.getCharset(), task.getLineDelimiterRecognized().orElse(null));
-        CsvTokenizer tokenizer = new CsvTokenizer(decoder, task);
-        Schema schema = task.getSchemaConfig().toSchema();
+        final FileInput input = newFileInputFromLines("\n", lines);
+        final LineDecoder decoder = LineDecoder.of(input, StandardCharsets.UTF_8, null);
+        final CsvTokenizer tokenizer = builder.build(decoder);
 
         tokenizer.nextFile();
 

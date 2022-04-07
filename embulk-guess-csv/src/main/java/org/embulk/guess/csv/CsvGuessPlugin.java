@@ -304,13 +304,7 @@ public class CsvGuessPlugin implements GuessPlugin {
             sample.setBytes(0, data, 0, data.length);
             sample.limit(data.length);
 
-            final ArrayList<Buffer> listBuffer = new ArrayList<>();
-            listBuffer.add(sample);
-            final ArrayList<ArrayList<Buffer>> listListBuffer = new ArrayList<>();
-            listListBuffer.add(listBuffer);
-            final LineDecoder decoder = LineDecoder.of(
-                    new ListFileInput(listListBuffer), parserTask.getCharset(), parserTask.getLineDelimiterRecognized().orElse(null));
-            final CsvTokenizer tokenizer = new CsvTokenizer(decoder, parserTask);
+            final CsvTokenizer tokenizer = buildCsvTokenizer(parserTask, sample);
 
             final ArrayList<List<String>> rows = new ArrayList<>();
             while (tokenizer.nextFile()) {
@@ -347,6 +341,32 @@ public class CsvGuessPlugin implements GuessPlugin {
             }
             return Collections.unmodifiableList(rows);
         }
+    }
+
+    private static CsvTokenizer buildCsvTokenizer(final CsvParserPlugin.PluginTask parserTask, final Buffer sample) {
+        final CsvTokenizer.Builder builder = CsvTokenizer.builder(parserTask.getDelimiter());
+        parserTask.getQuoteChar().ifPresent(q -> builder.setQuote(q.getCharacter()));
+        parserTask.getEscapeChar().ifPresent(e -> builder.setEscape(e.getCharacter()));
+        builder.setNewline(parserTask.getNewline().getString());
+        if (parserTask.getTrimIfNotQuoted()) {
+            builder.enableTrimIfNotQuoted();
+        }
+        if (parserTask.getQuotesInQuotedFields()
+                    == CsvParserPlugin.QuotesInQuotedFields.ACCEPT_STRAY_QUOTES_ASSUMING_NO_DELIMITERS_IN_FIELDS) {
+            builder.acceptStrayQuotesAssumingNoDelimitersInFields();
+        }
+        builder.setMaxQuotedFieldLength(parserTask.getMaxQuotedSizeLimit());
+        parserTask.getCommentLineMarker().ifPresent(m -> builder.setCommentLineMarker(m));
+        parserTask.getNullString().ifPresent(n -> builder.setNullString(n));
+
+        final ArrayList<Buffer> listBuffer = new ArrayList<>();
+        listBuffer.add(sample);
+        final ArrayList<ArrayList<Buffer>> listListBuffer = new ArrayList<>();
+        listListBuffer.add(listBuffer);
+        final LineDecoder decoder = LineDecoder.of(
+                new ListFileInput(listListBuffer), parserTask.getCharset(), parserTask.getLineDelimiterRecognized().orElse(null));
+
+        return builder.build(decoder);
     }
 
     private String guessDelimiter(final List<String> sampleLines) {
