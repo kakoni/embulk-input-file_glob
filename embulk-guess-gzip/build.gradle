@@ -12,20 +12,9 @@ group = rootProject.group
 version = rootProject.version
 description = "Guesses if an input is gzip-encoded."
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
-dependencies {
-    compileOnly "org.embulk:embulk-api:0.10.33"
-    compileOnly "org.embulk:embulk-spi:0.10.33"
-
-    compile "org.embulk:embulk-util-config:0.3.1"
-}
-
-embulkPlugin {
-    mainClass = "org.embulk.guess.gzip.GzipGuessPlugin"
-    category = "guess"
-    type = "gzip"
+configurations {
+    compileClasspath.resolutionStrategy.activateDependencyLocking()
+    runtimeClasspath.resolutionStrategy.activateDependencyLocking()
 }
 
 tasks.withType(JavaCompile) {
@@ -34,20 +23,46 @@ tasks.withType(JavaCompile) {
 }
 
 java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+
     withJavadocJar()
     withSourcesJar()
 }
 
+dependencies {
+    compileOnly "org.embulk:embulk-api:0.10.33"
+    compileOnly "org.embulk:embulk-spi:0.10.33"
+
+    implementation "org.embulk:embulk-util-config:0.3.1"
+}
+
+embulkPlugin {
+    mainClass = "org.embulk.guess.gzip.GzipGuessPlugin"
+    category = "guess"
+    type = "gzip"
+}
+
 jar {
-    from rootProject.file("LICENSE")
+    metaInf {
+        from rootProject.file("LICENSE")
+        from rootProject.file("NOTICE")
+    }
 }
 
 sourcesJar {
-    from rootProject.file("LICENSE")
+    metaInf {
+        from rootProject.file("LICENSE")
+        from rootProject.file("NOTICE")
+    }
 }
 
 javadocJar {
-    from rootProject.file("LICENSE")
+    metaInf {
+        from rootProject.file("LICENSE")
+        from rootProject.file("NOTICE")
+    }
 }
 
 publishing {

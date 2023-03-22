@@ -12,21 +12,9 @@ group = rootProject.group
 version = rootProject.version
 description = "Dumps records to the standard output."
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
-dependencies {
-    compileOnly "org.embulk:embulk-api:0.10.33"
-    compileOnly "org.embulk:embulk-spi:0.10.33"
-
-    compile "org.embulk:embulk-util-config:0.3.1"
-    compile "org.embulk:embulk-util-timestamp:0.2.1"
-}
-
-embulkPlugin {
-    mainClass = "org.embulk.output.stdout.StdoutOutputPlugin"
-    category = "output"
-    type = "stdout"
+configurations {
+    compileClasspath.resolutionStrategy.activateDependencyLocking()
+    runtimeClasspath.resolutionStrategy.activateDependencyLocking()
 }
 
 tasks.withType(JavaCompile) {
@@ -35,20 +23,47 @@ tasks.withType(JavaCompile) {
 }
 
 java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+
     withJavadocJar()
     withSourcesJar()
 }
 
+dependencies {
+    compileOnly "org.embulk:embulk-api:0.10.33"
+    compileOnly "org.embulk:embulk-spi:0.10.33"
+
+    implementation "org.embulk:embulk-util-config:0.3.1"
+    implementation "org.embulk:embulk-util-timestamp:0.2.1"
+}
+
+embulkPlugin {
+    mainClass = "org.embulk.output.stdout.StdoutOutputPlugin"
+    category = "output"
+    type = "stdout"
+}
+
 jar {
-    from rootProject.file("LICENSE")
+    metaInf {
+        from rootProject.file("LICENSE")
+        from rootProject.file("NOTICE")
+    }
 }
 
 sourcesJar {
-    from rootProject.file("LICENSE")
+    metaInf {
+        from rootProject.file("LICENSE")
+        from rootProject.file("NOTICE")
+    }
 }
 
 javadocJar {
-    from rootProject.file("LICENSE")
+    metaInf {
+        from rootProject.file("LICENSE")
+        from rootProject.file("NOTICE")
+    }
 }
 
 publishing {
