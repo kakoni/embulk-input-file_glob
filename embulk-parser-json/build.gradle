@@ -168,8 +168,13 @@ test {
     maxHeapSize = "1536m"
     forkEvery = 1  // test processes are forked by each test class (default is 0)
     testLogging {
-        outputs.upToDateWhen { false }
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showCauses = true
+        showExceptions = true
+        showStackTraces = true
         showStandardStreams = true
+        outputs.upToDateWhen { false }
     }
 }
 
