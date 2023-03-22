@@ -58,21 +58,21 @@ embulkPlugin {
 jar {
     metaInf {
         from rootProject.file("LICENSE")
-        from rootProject.file("NOTICE")
+        from project.file("NOTICE")
     }
 }
 
 sourcesJar {
     metaInf {
         from rootProject.file("LICENSE")
-        from rootProject.file("NOTICE")
+        from project.file("NOTICE")
     }
 }
 
 javadocJar {
     metaInf {
         from rootProject.file("LICENSE")
-        from rootProject.file("NOTICE")
+        from project.file("NOTICE")
     }
 }
 
