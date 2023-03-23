@@ -12,14 +12,31 @@ group = rootProject.group
 version = rootProject.version
 description = "Guesses a configuration with a schema if an input is CSV."
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+configurations {
+    compileClasspath.resolutionStrategy.activateDependencyLocking()
+    runtimeClasspath.resolutionStrategy.activateDependencyLocking()
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+    options.encoding = "UTF-8"
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+
+    withJavadocJar()
+    withSourcesJar()
+}
 
 dependencies {
     compileOnly "org.embulk:embulk-api:0.10.33"
     compileOnly "org.embulk:embulk-spi:0.10.33"
 
-    compile project(":embulk-guess-csv")
+    implementation project(":embulk-guess-csv")
+    implementation "org.embulk:embulk-util-guess:0.2.0"
 
     testImplementation "junit:junit:4.13.2"
     testImplementation "org.embulk:embulk-api:0.10.33"
@@ -43,26 +60,25 @@ embulkPlugin {
     type = "csv_all_strings"
 }
 
-tasks.withType(JavaCompile) {
-    options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
-    options.encoding = "UTF-8"
-}
-
-java {
-    withJavadocJar()
-    withSourcesJar()
-}
-
 jar {
-    from rootProject.file("LICENSE")
+    metaInf {
+        from rootProject.file("LICENSE")
+        from project.file("NOTICE")
+    }
 }
 
 sourcesJar {
-    from rootProject.file("LICENSE")
+    metaInf {
+        from rootProject.file("LICENSE")
+        from project.file("NOTICE")
+    }
 }
 
 javadocJar {
-    from rootProject.file("LICENSE")
+    metaInf {
+        from rootProject.file("LICENSE")
+        from project.file("NOTICE")
+    }
 }
 
 publishing {
@@ -128,6 +144,10 @@ publishing {
 }
 
 signing {
+    if (project.hasProperty("signingKey") && project.hasProperty("signingPassword")) {
+        logger.lifecycle("Signing with an in-memory key.")
+        useInMemoryPgpKeys(signingKey, signingPassword)
+    }
     sign publishing.publications.maven
 }
 
@@ -135,8 +155,13 @@ test {
     maxHeapSize = "1536m"
     forkEvery = 1  // test processes are forked by each test class (default is 0)
     testLogging {
-        outputs.upToDateWhen { false }
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showCauses = true
+        showExceptions = true
+        showStackTraces = true
         showStandardStreams = true
+        outputs.upToDateWhen { false }
     }
 }
 
