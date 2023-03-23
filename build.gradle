@@ -10,7 +10,7 @@ repositories {
 }
 
 group = "org.embulk"
-version = "0.10.38-SNAPSHOT"
+version = "0.10.39-SNAPSHOT"
 
 task releaseCheck {
     doFirst {
