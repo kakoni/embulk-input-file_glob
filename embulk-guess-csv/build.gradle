@@ -37,6 +37,7 @@ dependencies {
 
     implementation project(":embulk-parser-csv")
     implementation "com.ibm.icu:icu4j:54.1.1"
+    implementation "org.embulk:embulk-util-csv:0.2.1"
     implementation "org.embulk:embulk-util-guess:0.2.0"
 
     testImplementation "junit:junit:4.13.2"
