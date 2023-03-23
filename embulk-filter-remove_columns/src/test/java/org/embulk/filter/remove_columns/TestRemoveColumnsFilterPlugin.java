@@ -44,7 +44,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 public class TestRemoveColumnsFilterPlugin {
-    private static final String RESOURCE_NAME_PREFIX = "org/embulk/filter/remove_columns/test/";
+    private static final String RESOURCE_NAME_PREFIX = "/org/embulk/filter/remove_columns/test/";
 
     @Rule
     public TestingEmbulk embulk = TestingEmbulk.builder()
