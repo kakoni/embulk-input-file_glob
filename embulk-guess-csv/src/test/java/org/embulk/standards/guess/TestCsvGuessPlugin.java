@@ -44,7 +44,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 public class TestCsvGuessPlugin {
-    private static final String RESOURCE_NAME_PREFIX = "org/embulk/standards/guess/csv/test/";
+    private static final String RESOURCE_NAME_PREFIX = "/org/embulk/standards/guess/csv/test/";
 
     private static final EmbulkSystemProperties EMBULK_SYSTEM_PROPERTIES;
 

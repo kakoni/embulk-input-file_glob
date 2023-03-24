@@ -41,7 +41,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 public class TestFilePreview {
-    private static final String RESOURCE_NAME_PREFIX = "org/embulk/standards/preview/file/test/";
+    private static final String RESOURCE_NAME_PREFIX = "/org/embulk/standards/preview/file/test/";
 
     private static final EmbulkSystemProperties EMBULK_SYSTEM_PROPERTIES;
 

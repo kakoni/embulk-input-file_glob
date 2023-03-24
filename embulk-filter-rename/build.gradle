@@ -32,17 +32,16 @@ java {
 }
 
 dependencies {
-    compileOnly "org.embulk:embulk-api:0.10.33"
-    compileOnly "org.embulk:embulk-spi:0.10.33"
+    compileOnly "org.embulk:embulk-spi:0.10.44"
 
-    implementation "org.embulk:embulk-util-config:0.3.1"
+    implementation "org.embulk:embulk-util-config:0.3.2"
 
     testImplementation "junit:junit:4.13.2"
-    testImplementation "org.embulk:embulk-api:0.10.33"
-    testImplementation "org.embulk:embulk-spi:0.10.33"
-    testImplementation "org.embulk:embulk-core:0.10.33"
-    testImplementation "org.embulk:embulk-deps:0.10.33"
-    testImplementation "org.embulk:embulk-junit4:0.10.33"
+    testImplementation "org.embulk:embulk-spi:0.10.44"
+    testImplementation "org.embulk:embulk-core:0.10.44"
+    testImplementation "org.embulk:embulk-deps:0.10.44"
+    testImplementation "org.embulk:embulk-junit4:0.10.44"
+    testImplementation "com.google.guava:guava:18.0"
 }
 
 embulkPlugin {
