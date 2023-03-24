@@ -3,3 +3,12 @@ Copyright 2021-2023 The Embulk project
 
 This product includes software developed at
 The Embulk project (https://www.embulk.org/).
+
+
+This product depends on embulk-util-guess by the Embulk project,
+which includes modified copies of a part of source code from
+ICU4J 57.2.
+They are licensed under the ICU License.
+
+When packaging embulk-guess-csv_all_strings with its dependencies,
+the packager needs to take care of the license of ICU4J.
