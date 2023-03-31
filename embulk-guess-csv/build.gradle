@@ -33,11 +33,12 @@ java {
 
 dependencies {
     compileOnly "org.embulk:embulk-spi:0.10.44"
+    compileOnly "org.slf4j:slf4j-api:2.0.6"
 
     implementation project(":embulk-parser-csv")
-    implementation "org.embulk:embulk-util-config:0.3.2"
-    implementation "org.embulk:embulk-util-csv:0.2.1"
-    implementation "org.embulk:embulk-util-guess:0.3.0"
+    implementation "org.embulk:embulk-util-config:0.3.3"
+    implementation "org.embulk:embulk-util-csv:0.2.2"
+    implementation "org.embulk:embulk-util-guess:0.3.1"
 
     testImplementation "junit:junit:4.13.2"
     testImplementation "org.embulk:embulk-spi:0.10.44"
@@ -64,21 +65,24 @@ embulkPlugin {
 jar {
     metaInf {
         from rootProject.file("LICENSE")
-        from project.file("NOTICE")
+        // No NOTICE because the Maven artifact does not contain embulk-util-guess by itself.
+        // But, be noted when building a package that includes dependencies of embulk-guess-csv.
     }
 }
 
 sourcesJar {
     metaInf {
         from rootProject.file("LICENSE")
-        from project.file("NOTICE")
+        // No NOTICE because the Maven artifact does not contain embulk-util-guess by itself.
+        // But, be noted when building a package that includes dependencies of embulk-guess-csv.
     }
 }
 
 javadocJar {
     metaInf {
         from rootProject.file("LICENSE")
-        from project.file("NOTICE")
+        // No NOTICE because the Maven artifact does not contain embulk-util-guess by itself.
+        // But, be noted when building a package that includes dependencies of embulk-guess-csv.
     }
 }
 
@@ -108,6 +112,7 @@ publishing {
                         // http://central.sonatype.org/pages/requirements.html#license-information
                         name = "The Apache License, Version 2.0"
                         url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
+                        distribution = "repo"
                     }
                 }
 
@@ -122,6 +127,20 @@ publishing {
                     connection = "scm:git:git://github.com/embulk/embulk-standards.git"
                     developerConnection = "scm:git:git@github.com:embulk/embulk-standards.git"
                     url = "https://github.com/embulk/embulk-standards"
+                }
+
+                withXml {
+                    if (asNode().getAt("dependencies").isEmpty()) {
+                        asNode().appendNode("dependencies")
+                    }
+                    project.configurations.compileOnly.allDependencies.each { dependency ->
+                        asNode().dependencies[0].appendNode("dependency").with {
+                            it.appendNode("groupId", dependency.group)
+                            it.appendNode("artifactId", dependency.name)
+                            it.appendNode("version", dependency.version)
+                            it.appendNode("scope", "provided")
+                        }
+                    }
                 }
             }
         }
