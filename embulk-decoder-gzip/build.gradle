@@ -118,20 +118,6 @@ publishing {
                     developerConnection = "scm:git:git@github.com:embulk/embulk-standards.git"
                     url = "https://github.com/embulk/embulk-standards"
                 }
-
-                withXml {
-                    if (asNode().getAt("dependencies").isEmpty()) {
-                        asNode().appendNode("dependencies")
-                    }
-                    project.configurations.compileOnly.allDependencies.each { dependency ->
-                        asNode().dependencies[0].appendNode("dependency").with {
-                            it.appendNode("groupId", dependency.group)
-                            it.appendNode("artifactId", dependency.name)
-                            it.appendNode("version", dependency.version)
-                            it.appendNode("scope", "provided")
-                        }
-                    }
-                }
             }
         }
     }
