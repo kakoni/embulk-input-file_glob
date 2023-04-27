@@ -35,12 +35,12 @@ java {
 
 dependencies {
     compileOnly "org.embulk:embulk-spi:0.10.44"
-    compileOnly "org.slf4j:slf4j-api:2.0.6"
+    compileOnly "org.slf4j:slf4j-api:2.0.7"
 
     implementation "com.fasterxml.jackson.core:jackson-annotations:2.6.7"
     implementation "com.fasterxml.jackson.core:jackson-core:2.6.7"
     implementation "com.fasterxml.jackson.core:jackson-databind:2.6.7.5"
-    implementation "org.embulk:embulk-util-csv:0.2.2"
+    implementation "org.embulk:embulk-util-csv:0.2.3"
     implementation "org.embulk:embulk-util-config:0.3.3"
     implementation "org.embulk:embulk-util-file:0.1.4"
     implementation "org.embulk:embulk-util-json:0.2.1"
