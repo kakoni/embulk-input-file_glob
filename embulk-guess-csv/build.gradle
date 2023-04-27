@@ -35,11 +35,11 @@ java {
 
 dependencies {
     compileOnly "org.embulk:embulk-spi:0.10.44"
-    compileOnly "org.slf4j:slf4j-api:2.0.6"
+    compileOnly "org.slf4j:slf4j-api:2.0.7"
 
     implementation project(":embulk-parser-csv")
     implementation "org.embulk:embulk-util-config:0.3.3"
-    implementation "org.embulk:embulk-util-csv:0.2.2"
+    implementation "org.embulk:embulk-util-csv:0.2.3"
     implementation "org.embulk:embulk-util-guess:0.3.1"
 
     testImplementation "junit:junit:4.13.2"
