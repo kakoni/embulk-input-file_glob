@@ -478,6 +478,10 @@ public class CsvParserPlugin implements ParserPlugin {
         }
     }
 
+    static CsvTokenizer.Builder buildCsvTokenizerBuilderForTesting(final PluginTask task) {
+        return buildCsvTokenizerBuilder(task);
+    }
+
     private static CsvTokenizer.Builder buildCsvTokenizerBuilder(final PluginTask task) {
         try {
             final CsvTokenizer.Builder builder = CsvTokenizer.builder(task.getDelimiter());
