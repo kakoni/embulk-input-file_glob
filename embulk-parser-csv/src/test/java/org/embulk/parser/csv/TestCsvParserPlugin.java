@@ -26,6 +26,7 @@ import org.embulk.EmbulkTestRuntime;
 import org.embulk.config.ConfigException;
 import org.embulk.config.ConfigSource;
 import org.embulk.util.config.ConfigMapperFactory;
+import org.embulk.util.csv.CsvTokenizer;
 import org.embulk.util.text.Newline;
 import org.junit.Rule;
 import org.junit.Test;
@@ -85,5 +86,139 @@ public class TestCsvParserPlugin {
         assertEquals("\t", task.getDelimiter());
         assertEquals(Optional.of(new CsvParserPlugin.QuoteCharacter('\\')), task.getQuoteChar());
         assertEquals(true, task.getAllowOptionalColumns());
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void testCsvTokenizerQuoteBackslash() {
+        final ConfigSource config = CONFIG_MAPPER_FACTORY.newConfigSource()
+                .set("charset", "utf-16")
+                .set("newline", "LF")
+                .set("header_line", true)
+                .set("delimiter", "\t")
+                .set("quote", "\\")
+                .set("columns", ImmutableList.of(ImmutableMap.of("name", "id", "type", "string")));
+        final CsvParserPlugin.PluginTask task =
+                CONFIG_MAPPER_FACTORY.createConfigMapper().map(config, CsvParserPlugin.PluginTask.class);
+
+        final CsvTokenizer.Builder builder = CsvParserPlugin.buildCsvTokenizerBuilderForTesting(task);
+        assertEquals('\\', builder.peekQuote());
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void testCsvTokenizerQuoteQuotation() {
+        final ConfigSource config = CONFIG_MAPPER_FACTORY.newConfigSource()
+                .set("charset", "utf-16")
+                .set("newline", "LF")
+                .set("header_line", true)
+                .set("delimiter", "\t")
+                .set("quote", "\"")
+                .set("columns", ImmutableList.of(ImmutableMap.of("name", "id", "type", "string")));
+        final CsvParserPlugin.PluginTask task =
+                CONFIG_MAPPER_FACTORY.createConfigMapper().map(config, CsvParserPlugin.PluginTask.class);
+
+        final CsvTokenizer.Builder builder = CsvParserPlugin.buildCsvTokenizerBuilderForTesting(task);
+        assertEquals('\"', builder.peekQuote());
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void testCsvTokenizerQuoteUnspecified() {
+        final ConfigSource config = CONFIG_MAPPER_FACTORY.newConfigSource()
+                .set("charset", "utf-16")
+                .set("newline", "LF")
+                .set("header_line", true)
+                .set("delimiter", "\t")
+                .set("columns", ImmutableList.of(ImmutableMap.of("name", "id", "type", "string")));
+        final CsvParserPlugin.PluginTask task =
+                CONFIG_MAPPER_FACTORY.createConfigMapper().map(config, CsvParserPlugin.PluginTask.class);
+
+        final CsvTokenizer.Builder builder = CsvParserPlugin.buildCsvTokenizerBuilderForTesting(task);
+        assertEquals('\"', builder.peekQuote());
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void testCsvTokenizerQuoteNull() {
+        final ConfigSource config = CONFIG_MAPPER_FACTORY.newConfigSource()
+                .set("charset", "utf-16")
+                .set("newline", "LF")
+                .set("header_line", true)
+                .set("delimiter", "\t")
+                .setNested("quote", null)  // #setNested is needed to set null
+                .set("columns", ImmutableList.of(ImmutableMap.of("name", "id", "type", "string")));
+        final CsvParserPlugin.PluginTask task =
+                CONFIG_MAPPER_FACTORY.createConfigMapper().map(config, CsvParserPlugin.PluginTask.class);
+
+        final CsvTokenizer.Builder builder = CsvParserPlugin.buildCsvTokenizerBuilderForTesting(task);
+        assertEquals(CsvTokenizer.NO_QUOTE, builder.peekQuote());
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void testCsvTokenizerEscapeBackslash() {
+        final ConfigSource config = CONFIG_MAPPER_FACTORY.newConfigSource()
+                .set("charset", "utf-16")
+                .set("newline", "LF")
+                .set("header_line", true)
+                .set("delimiter", "\t")
+                .set("escape", "\\")
+                .set("columns", ImmutableList.of(ImmutableMap.of("name", "id", "type", "string")));
+        final CsvParserPlugin.PluginTask task =
+                CONFIG_MAPPER_FACTORY.createConfigMapper().map(config, CsvParserPlugin.PluginTask.class);
+
+        final CsvTokenizer.Builder builder = CsvParserPlugin.buildCsvTokenizerBuilderForTesting(task);
+        assertEquals('\\', builder.peekEscape());
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void testCsvTokenizerEscapeSlash() {
+        final ConfigSource config = CONFIG_MAPPER_FACTORY.newConfigSource()
+                .set("charset", "utf-16")
+                .set("newline", "LF")
+                .set("header_line", true)
+                .set("delimiter", "\t")
+                .set("escape", "/")
+                .set("columns", ImmutableList.of(ImmutableMap.of("name", "id", "type", "string")));
+        final CsvParserPlugin.PluginTask task =
+                CONFIG_MAPPER_FACTORY.createConfigMapper().map(config, CsvParserPlugin.PluginTask.class);
+
+        final CsvTokenizer.Builder builder = CsvParserPlugin.buildCsvTokenizerBuilderForTesting(task);
+        assertEquals('/', builder.peekEscape());
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void testCsvTokenizerEscapeUnspecified() {
+        final ConfigSource config = CONFIG_MAPPER_FACTORY.newConfigSource()
+                .set("charset", "utf-16")
+                .set("newline", "LF")
+                .set("header_line", true)
+                .set("delimiter", "\t")
+                .set("columns", ImmutableList.of(ImmutableMap.of("name", "id", "type", "string")));
+        final CsvParserPlugin.PluginTask task =
+                CONFIG_MAPPER_FACTORY.createConfigMapper().map(config, CsvParserPlugin.PluginTask.class);
+
+        final CsvTokenizer.Builder builder = CsvParserPlugin.buildCsvTokenizerBuilderForTesting(task);
+        assertEquals('\\', builder.peekEscape());
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void testCsvTokenizerEscapeNull() {
+        final ConfigSource config = CONFIG_MAPPER_FACTORY.newConfigSource()
+                .set("charset", "utf-16")
+                .set("newline", "LF")
+                .set("header_line", true)
+                .set("delimiter", "\t")
+                .setNested("escape", null)  // #setNested is needed to set null
+                .set("columns", ImmutableList.of(ImmutableMap.of("name", "id", "type", "string")));
+        final CsvParserPlugin.PluginTask task =
+                CONFIG_MAPPER_FACTORY.createConfigMapper().map(config, CsvParserPlugin.PluginTask.class);
+
+        final CsvTokenizer.Builder builder = CsvParserPlugin.buildCsvTokenizerBuilderForTesting(task);
+        assertEquals(CsvTokenizer.NO_ESCAPE, builder.peekEscape());
     }
 }

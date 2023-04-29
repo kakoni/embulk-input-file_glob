@@ -478,11 +478,15 @@ public class CsvParserPlugin implements ParserPlugin {
         }
     }
 
+    static CsvTokenizer.Builder buildCsvTokenizerBuilderForTesting(final PluginTask task) {
+        return buildCsvTokenizerBuilder(task);
+    }
+
     private static CsvTokenizer.Builder buildCsvTokenizerBuilder(final PluginTask task) {
         try {
             final CsvTokenizer.Builder builder = CsvTokenizer.builder(task.getDelimiter());
-            task.getQuoteChar().ifPresent(q -> builder.setQuote(q.getCharacter()));
-            task.getEscapeChar().ifPresent(e -> builder.setEscape(e.getCharacter()));
+            builder.setQuote(task.getQuoteChar().orElse(QuoteCharacter.noQuote()).getCharacter());
+            builder.setEscape(task.getEscapeChar().orElse(EscapeCharacter.noEscape()).getCharacter());
             builder.setNewline(task.getNewline().getString());
             if (task.getTrimIfNotQuoted()) {
                 builder.enableTrimIfNotQuoted();
