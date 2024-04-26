@@ -18,6 +18,8 @@ embulk-util-file = "0.1.5"
 junit4 = "4.13.2"
 embulk-core = "0.10.50"
 
+checkstyle = "9.3"
+
 [libraries]
 
 embulk-spi = { group = "org.embulk", name = "embulk-spi", version.ref = "embulk-spi" }
