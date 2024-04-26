@@ -81,6 +81,7 @@ public class TestLocalFileInputPlugin {
         }
     }
 
+    @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
     @Test
     public void testListFilesDots() throws IOException {
         // TODO: Mock the current directory.
