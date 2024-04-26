@@ -11,7 +11,7 @@ jobs:
       matrix:
         os:
         - ubuntu-latest
-        # - macOS-latest  # https://github.com/embulk/embulk-standards/issues/16
+        # - macos-13  # https://github.com/embulk/embulk-standards/issues/16
         - windows-latest
     steps:
     - name: Set Git's core.autocrlf to false for Windows before checkout
