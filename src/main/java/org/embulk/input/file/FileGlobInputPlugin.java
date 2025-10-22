@@ -52,10 +52,15 @@ import org.embulk.util.file.InputStreamTransactionalFileInput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LocalFileInputPlugin implements FileInputPlugin {
+public class FileGlobInputPlugin implements FileInputPlugin {
     public interface PluginTask extends Task {
+        @Config("path_glob")
+        @ConfigDefault("null")
+        Optional<String> getPathGlobOptional();
+
         @Config("path_prefix")
-        String getPathPrefix();
+        @ConfigDefault("null")
+        Optional<String> getPathPrefixOptional();
 
         @Config("last_path")
         @ConfigDefault("null")
@@ -145,13 +150,30 @@ public class LocalFileInputPlugin implements FileInputPlugin {
         return listFiles(task);
     }
 
+    private static String getConfiguredPathPattern(final PluginTask task) {
+        final Optional<String> glob = task.getPathGlobOptional();
+        if (glob.isPresent()) {
+            return glob.get();
+        }
+        return task.getPathPrefixOptional()
+                .orElseThrow(() -> new IllegalStateException("Either \"path_glob\" or \"path_prefix\" must be set."));
+    }
+
     private static List<String> listFiles(final PluginTask task) {
+        final String pathPattern = getConfiguredPathPattern(task);
+        if (containsGlobMeta(pathPattern)) {
+            return listFilesByGlob(task, pathPattern);
+        }
+        return listFilesByPrefix(task, pathPattern);
+    }
+
+    private static List<String> listFilesByPrefix(final PluginTask task, final String pathWithoutGlob) {
         // This |pathPrefixResolved| can still be a relative path from the working directory.
         // The path should not be normalized by Path#normalize to eliminate redundant name elements like "." and "..".
-        final Path pathPrefixResolved = WORKING_DIRECTORY.resolve(Paths.get(task.getPathPrefix()));
+        final Path pathPrefixResolved = WORKING_DIRECTORY.resolve(Paths.get(pathWithoutGlob));
 
-        final Path dirToMatch;  // Directory part of "path_prefix" with character cases as specified.
-        final Path dirToStartWalking;  //  Directory part of "path_prefix" with character cases as the real file system.
+        final Path dirToMatch;  // Directory part of "path_glob" with character cases as specified when no glob meta characters.
+        final Path dirToStartWalking;  //  Directory part of "path_glob" with character cases as the real file system when no glob meta characters.
         final String baseFileNamePrefix;
         if (Files.isDirectory(pathPrefixResolved)) {
             // If |pathPrefixResolved| is actually an existing directory in the real file system.
@@ -277,6 +299,135 @@ public class LocalFileInputPlugin implements FileInputPlugin {
         return Collections.unmodifiableList(filesFound);
     }
 
+    private static List<String> listFilesByGlob(final PluginTask task, final String pathPattern) {
+        final Path rawPattern = Paths.get(pathPattern);
+        final Path absolutePattern = rawPattern.isAbsolute()
+                ? rawPattern
+                : WORKING_DIRECTORY.resolve(rawPattern);
+
+        final Path startDirectoryCandidate = determineStartDirectoryForGlob(rawPattern, absolutePattern);
+        final Path dirToStartWalking = resolveStartDirectoryForGlob(startDirectoryCandidate);
+
+        final String matcherPattern = sanitizeGlobPattern(absolutePattern);
+        final PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + matcherPattern);
+
+        final ArrayList<String> filesFound = new ArrayList<>();
+        final String lastPath = task.getLastPath().orElse(null);
+        logger.info("Listing local files matching glob '{}'", pathPattern);
+
+        final Set<FileVisitOption> visitOptions;
+        if (task.getFollowSymlinks()) {
+            visitOptions = EnumSet.of(FileVisitOption.FOLLOW_LINKS);
+        } else {
+            visitOptions = EnumSet.noneOf(FileVisitOption.class);
+            logger.info("\"follow_symlinks\" is set false. Note that symbolic links to directories are skipped.");
+        }
+
+        try {
+            Files.walkFileTree(dirToStartWalking, visitOptions, Integer.MAX_VALUE, new SimpleFileVisitor<Path>() {
+                    @Override
+                    public FileVisitResult preVisitDirectory(final Path dirOnVisit, final BasicFileAttributes attrs) {
+                        if (dirOnVisit.equals(dirToStartWalking)) {
+                            return FileVisitResult.CONTINUE;
+                        }
+                        if (lastPath != null && dirOnVisit.toString().compareTo(lastPath) <= 0) {
+                            return FileVisitResult.SKIP_SUBTREE;
+                        }
+                        return FileVisitResult.CONTINUE;
+                    }
+
+                    @Override
+                    public FileVisitResult visitFile(final Path fileOnVisit, final BasicFileAttributes attrs) {
+                        try {
+                            if (Files.isDirectory(fileOnVisit.toRealPath())) {
+                                return FileVisitResult.CONTINUE;
+                            }
+                        } catch (IOException ex) {
+                            throw new RuntimeException("Can't resolve symbolic link", ex);
+                        }
+                        if (lastPath != null && fileOnVisit.toString().compareTo(lastPath) <= 0) {
+                            return FileVisitResult.CONTINUE;
+                        }
+                        if (matcher.matches(fileOnVisit)) {
+                            filesFound.add(fileOnVisit.toString());
+                        }
+                        return FileVisitResult.CONTINUE;
+                    }
+                });
+        } catch (IOException ex) {
+            throw new RuntimeException(String.format("Failed get a list of local files with glob '%s'", pathPattern), ex);
+        }
+        return Collections.unmodifiableList(filesFound);
+    }
+
+    private static boolean containsGlobMeta(final String value) {
+        for (int i = 0; i < value.length(); i++) {
+            final char c = value.charAt(i);
+            if (c == '*' || c == '?' || c == '[' || c == ']' || c == '{' || c == '}') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Path determineStartDirectoryForGlob(final Path rawPattern, final Path absolutePattern) {
+        final int nameCount = rawPattern.getNameCount();
+        int prefixLength = nameCount;
+        for (int i = 0; i < nameCount; i++) {
+            if (containsGlobMeta(rawPattern.getName(i).toString())) {
+                prefixLength = i;
+                break;
+            }
+        }
+
+        if (prefixLength == 0) {
+            if (rawPattern.isAbsolute()) {
+                final Path root = absolutePattern.getRoot();
+                return (root != null) ? root : absolutePattern;
+            } else {
+                return WORKING_DIRECTORY;
+            }
+        }
+
+        Path base = rawPattern.isAbsolute()
+                ? rawPattern.getRoot()
+                : Paths.get("");
+        if (base == null) {
+            base = Paths.get("");
+        }
+        for (int i = 0; i < prefixLength; i++) {
+            base = base.resolve(rawPattern.getName(i));
+        }
+
+        if (rawPattern.isAbsolute()) {
+            return base;
+        } else {
+            return WORKING_DIRECTORY.resolve(base);
+        }
+    }
+
+    private static Path resolveStartDirectoryForGlob(final Path startDirectoryCandidate) {
+        if (startDirectoryCandidate == null) {
+            return WORKING_DIRECTORY;
+        }
+        if (Files.exists(startDirectoryCandidate) && Files.isDirectory(startDirectoryCandidate)) {
+            return getRealCasePathOfDirectoryNoFollowLinks(startDirectoryCandidate);
+        }
+        final Path parent = startDirectoryCandidate.getParent();
+        if (parent != null && Files.exists(parent) && Files.isDirectory(parent)) {
+            return getRealCasePathOfDirectoryNoFollowLinks(parent);
+        }
+        return startDirectoryCandidate;
+    }
+
+    private static String sanitizeGlobPattern(final Path absolutePattern) {
+        final String pattern = absolutePattern.toString();
+        if (File.separatorChar == '\\') {
+            return pattern.replace("\\", "\\\\");
+        }
+        return pattern;
+    }
+
     private static StringBuilder buildGlobPatternStringBuilder(final String pathString) {
         final StringBuilder globPatternBuilder = new StringBuilder();
         // Escape the special characters for the FileSystem#getPathMatcher().
@@ -307,7 +458,7 @@ public class LocalFileInputPlugin implements FileInputPlugin {
 
         // |dir| can be empty when just a file/directory name directly on the working directory is given. For example,
         //
-        //   path_prefix: file.txt
+        //   path_glob: file.txt
         if (dirLength > 1 && builder.charAt(dirLength - 1) != File.separatorChar) {
             if (File.separatorChar == '\\') {
                 builder.append('\\');
@@ -418,5 +569,5 @@ public class LocalFileInputPlugin implements FileInputPlugin {
     private static final Path DOT = Paths.get(".");
     private static final Path DOT_DOT = Paths.get("..");
 
-    private static final Logger logger = LoggerFactory.getLogger(LocalFileInputPlugin.class);
+    private static final Logger logger = LoggerFactory.getLogger(FileGlobInputPlugin.class);
 }

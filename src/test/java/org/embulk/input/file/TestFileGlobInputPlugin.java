@@ -33,9 +33,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 /**
- * Tests LocalFileInputPlugin.
+ * Tests FileGlobInputPlugin.
  */
-public class TestLocalFileInputPlugin {
+public class TestFileGlobInputPlugin {
     @Rule
     public EmbulkTestRuntime runtime = new EmbulkTestRuntime();
 
@@ -44,7 +44,7 @@ public class TestLocalFileInputPlugin {
 
     @Test
     public void testListFiles() throws IOException {
-        final LocalFileInputPlugin.PluginTask task = buildTask("foofoo");
+        final FileGlobInputPlugin.PluginTask task = buildTask("foofoo");
         this.workdir.newFile("foofoo1");
         this.workdir.newFile("FooFoo2");
         this.workdir.newFile("barbar3");
@@ -81,6 +81,39 @@ public class TestLocalFileInputPlugin {
         }
     }
 
+    @Test
+    public void testListFilesWithGlobPattern() throws IOException {
+        Files.createDirectories(Paths.get(this.workdir.getRoot().getPath(), "logs", "sub1"));
+        Files.createDirectories(Paths.get(this.workdir.getRoot().getPath(), "logs", "sub2"));
+        Files.createFile(Paths.get(this.workdir.getRoot().getPath(), "logs", "top.csv"));
+        Files.createFile(Paths.get(this.workdir.getRoot().getPath(), "logs", "top.txt"));
+        Files.createFile(Paths.get(this.workdir.getRoot().getPath(), "logs", "sub1", "nested.csv"));
+        Files.createFile(Paths.get(this.workdir.getRoot().getPath(), "logs", "sub1", "nested.txt"));
+        Files.createFile(Paths.get(this.workdir.getRoot().getPath(), "logs", "sub2", "other.csv"));
+        Files.createFile(Paths.get(this.workdir.getRoot().getPath(), "other.csv"));
+
+        final FileGlobInputPlugin.PluginTask task = buildTask("logs/**/*.csv");
+        final List<String> files = listFiles(task);
+        assertEquals(2, files.size());
+        assertTrue(files.contains(buildPath("logs/sub1/nested.csv")));
+        assertTrue(files.contains(buildPath("logs/sub2/other.csv")));
+    }
+
+    @Test
+    public void testLegacyPathPrefixAliasStillWorks() throws IOException {
+        final ConfigSource config = CONFIG_MAPPER_FACTORY.newConfigSource();
+        config.set("path_prefix", buildPath("legacy"));
+        final FileGlobInputPlugin.PluginTask task =
+                CONFIG_MAPPER_FACTORY.createConfigMapper().map(config, FileGlobInputPlugin.PluginTask.class);
+
+        this.workdir.newFile("legacy1");
+        this.workdir.newFile("other");
+
+        final List<String> files = listFiles(task);
+        assertTrue(files.contains(buildPath("legacy1")));
+        assertTrue(files.stream().noneMatch(p -> p.endsWith("other")));
+    }
+
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
     @Test
     public void testListFilesDots() throws IOException {
@@ -95,41 +128,41 @@ public class TestLocalFileInputPlugin {
             Files.createFile(Paths.get("dirB", "file5"));
             Files.createFile(Paths.get("dirB", "file6"));
 
-            final LocalFileInputPlugin.PluginTask file1Task = buildRawTask("file1");
+            final FileGlobInputPlugin.PluginTask file1Task = buildRawTask("file1");
             final List<String> file1Files = listFiles(file1Task);
             assertEquals(1, file1Files.size());
             assertTrue(file1Files.contains("file1"));
 
-            final LocalFileInputPlugin.PluginTask dotSlashFile1Task = buildRawTask("." + File.separator + "file1");
+            final FileGlobInputPlugin.PluginTask dotSlashFile1Task = buildRawTask("." + File.separator + "file1");
             final List<String> dotSlashFile1Files = listFiles(dotSlashFile1Task);
             assertEquals(1, dotSlashFile1Files.size());
             assertTrue(dotSlashFile1Files.contains("." + File.separator + "file1"));
 
-            final LocalFileInputPlugin.PluginTask fileTask = buildRawTask("file");
+            final FileGlobInputPlugin.PluginTask fileTask = buildRawTask("file");
             final List<String> fileFiles = listFiles(fileTask);
             assertEquals(2, fileFiles.size());
             assertTrue(fileFiles.contains("file1"));
             assertTrue(fileFiles.contains("file2"));
 
-            final LocalFileInputPlugin.PluginTask dotSlashFileTask = buildRawTask("." + File.separator + "file");
+            final FileGlobInputPlugin.PluginTask dotSlashFileTask = buildRawTask("." + File.separator + "file");
             final List<String> dotSlashFileFiles = listFiles(dotSlashFileTask);
             assertEquals(2, dotSlashFileFiles.size());
             assertTrue(dotSlashFileFiles.contains("." + File.separator + "file1"));
             assertTrue(dotSlashFileFiles.contains("." + File.separator + "file2"));
 
-            final LocalFileInputPlugin.PluginTask dirATask = buildRawTask("dirA");
+            final FileGlobInputPlugin.PluginTask dirATask = buildRawTask("dirA");
             final List<String> dirAFiles = listFiles(dirATask);
             assertEquals(2, dirAFiles.size());
             assertTrue(dirAFiles.contains("dirA" + File.separator + "file3"));
             assertTrue(dirAFiles.contains("dirA" + File.separator + "file4"));
 
-            final LocalFileInputPlugin.PluginTask dotSlashDirATask = buildRawTask("." + File.separator + "dirA");
+            final FileGlobInputPlugin.PluginTask dotSlashDirATask = buildRawTask("." + File.separator + "dirA");
             final List<String> dotSlashDirAFiles = listFiles(dotSlashDirATask);
             assertEquals(2, dotSlashDirAFiles.size());
             assertTrue(dotSlashDirAFiles.contains("." + File.separator + "dirA" + File.separator + "file3"));
             assertTrue(dotSlashDirAFiles.contains("." + File.separator + "dirA" + File.separator + "file4"));
 
-            final LocalFileInputPlugin.PluginTask dirTask = buildRawTask("dir");
+            final FileGlobInputPlugin.PluginTask dirTask = buildRawTask("dir");
             final List<String> dirFiles = listFiles(dirTask);
             assertEquals(4, dirFiles.size());
             assertTrue(dirFiles.contains("dirA" + File.separator + "file3"));
@@ -137,7 +170,7 @@ public class TestLocalFileInputPlugin {
             assertTrue(dirFiles.contains("dirB" + File.separator + "file5"));
             assertTrue(dirFiles.contains("dirB" + File.separator + "file6"));
 
-            final LocalFileInputPlugin.PluginTask dotSlashDirTask = buildRawTask("." + File.separator + "dir");
+            final FileGlobInputPlugin.PluginTask dotSlashDirTask = buildRawTask("." + File.separator + "dir");
             final List<String> dotSlashDirFiles = listFiles(dotSlashDirTask);
             assertEquals(4, dotSlashDirFiles.size());
             assertTrue(dotSlashDirFiles.contains("." + File.separator + "dirA" + File.separator + "file3"));
@@ -145,7 +178,7 @@ public class TestLocalFileInputPlugin {
             assertTrue(dotSlashDirFiles.contains("." + File.separator + "dirB" + File.separator + "file5"));
             assertTrue(dotSlashDirFiles.contains("." + File.separator + "dirB" + File.separator + "file6"));
 
-            final LocalFileInputPlugin.PluginTask dotSlashTask = buildRawTask("." + File.separator + "");
+            final FileGlobInputPlugin.PluginTask dotSlashTask = buildRawTask("." + File.separator + "");
             final List<String> dotSlashFiles = listFiles(dotSlashTask);
             assertTrue(6 <= dotSlashFiles.size());  // Other files and directories exist.
             assertTrue(dotSlashFiles.contains("." + File.separator + "file1"));
@@ -155,7 +188,7 @@ public class TestLocalFileInputPlugin {
             assertTrue(dotSlashFiles.contains("." + File.separator + "dirB" + File.separator + "file5"));
             assertTrue(dotSlashFiles.contains("." + File.separator + "dirB" + File.separator + "file6"));
 
-            final LocalFileInputPlugin.PluginTask dotTask = buildRawTask(".");
+            final FileGlobInputPlugin.PluginTask dotTask = buildRawTask(".");
             final List<String> dotFiles = listFiles(dotTask);
             assertTrue(6 <= dotFiles.size());  // Other files and directories exist.
             assertTrue(dotFiles.contains("." + File.separator + "file1"));
@@ -178,7 +211,7 @@ public class TestLocalFileInputPlugin {
 
     @Test
     public void testListFilesWithSameCaseDirectoryPrefix() throws IOException {
-        final LocalFileInputPlugin.PluginTask task;
+        final FileGlobInputPlugin.PluginTask task;
         if (System.getProperty("os.name").contains("Windows")) {
             task = buildTask("directory1\\foo");
         } else {
@@ -214,7 +247,7 @@ public class TestLocalFileInputPlugin {
 
     @Test
     public void testListFilesWithDifferentCaseDirectoryPrefix() throws IOException {
-        final LocalFileInputPlugin.PluginTask task;
+        final FileGlobInputPlugin.PluginTask task;
         if (System.getProperty("os.name").contains("Windows")) {
             task = buildTask("Directory1\\foo");
         } else {
@@ -248,49 +281,49 @@ public class TestLocalFileInputPlugin {
         }
     }
 
-    private static List<String> listFiles(final LocalFileInputPlugin.PluginTask task) {
-        return LocalFileInputPlugin.listFilesForTesting(task);
+    private static List<String> listFiles(final FileGlobInputPlugin.PluginTask task) {
+        return FileGlobInputPlugin.listFilesForTesting(task);
     }
 
-    private LocalFileInputPlugin.PluginTask buildRawTask(
-            final String pathPrefix) {
-        return this.buildRawTask(pathPrefix, null, null);
+    private FileGlobInputPlugin.PluginTask buildRawTask(
+            final String pathGlob) {
+        return this.buildRawTask(pathGlob, null, null);
     }
 
-    private LocalFileInputPlugin.PluginTask buildRawTask(
-            final String pathPrefix,
+    private FileGlobInputPlugin.PluginTask buildRawTask(
+            final String pathGlob,
             final String lastPath,
             final Boolean followSymlinks) {
         final ConfigSource config = CONFIG_MAPPER_FACTORY.newConfigSource();
-        config.set("path_prefix", pathPrefix);
+        config.set("path_glob", pathGlob);
         if (lastPath != null) {
             config.set("last_path", Optional.of(lastPath));
         }
         if (followSymlinks != null) {
             config.set("follow_symlinks", followSymlinks);
         }
-        return CONFIG_MAPPER_FACTORY.createConfigMapper().map(config, LocalFileInputPlugin.PluginTask.class);
+        return CONFIG_MAPPER_FACTORY.createConfigMapper().map(config, FileGlobInputPlugin.PluginTask.class);
     }
 
-    private LocalFileInputPlugin.PluginTask buildTask(
-            final String subPathPrefix) {
-        return this.buildTask(subPathPrefix, null, null);
+    private FileGlobInputPlugin.PluginTask buildTask(
+            final String subPathGlob) {
+        return this.buildTask(subPathGlob, null, null);
     }
 
-    private LocalFileInputPlugin.PluginTask buildTask(
-            final String subPathPrefix,
+    private FileGlobInputPlugin.PluginTask buildTask(
+            final String subPathGlob,
             final String lastPath,
             final Boolean followSymlinks) {
-        final String pathPrefix = this.buildPath(subPathPrefix);
+        final String pathGlob = this.buildPath(subPathGlob);
         final ConfigSource config = CONFIG_MAPPER_FACTORY.newConfigSource();
-        config.set("path_prefix", pathPrefix);
+        config.set("path_glob", pathGlob);
         if (lastPath != null) {
             config.set("last_path", Optional.of(lastPath));
         }
         if (followSymlinks != null) {
             config.set("follow_symlinks", followSymlinks);
         }
-        return CONFIG_MAPPER_FACTORY.createConfigMapper().map(config, LocalFileInputPlugin.PluginTask.class);
+        return CONFIG_MAPPER_FACTORY.createConfigMapper().map(config, FileGlobInputPlugin.PluginTask.class);
     }
 
     private String buildPath(final String subPath) {
