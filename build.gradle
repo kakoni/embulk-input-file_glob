@@ -106,12 +106,12 @@ checkstyle {
 
 gem {
     authors = [
-        "kaki"
+        "Karri Niemelä"
     ]
     email = [
         "kakoni@gmail.com"
     ]
-    summary = "azure file input plugin for Embulk"
-    homepage = "https://github.com/kaki/embulk-input-file_glob"
+    summary = "File input plugin for Embulk"
+    homepage = "https://github.com/kakoni/embulk-input-file_glob"
     licenses = [ "Apache-2.0" ]
 }
